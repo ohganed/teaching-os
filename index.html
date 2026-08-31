@@ -1,0 +1,886 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Teaching OS v0.27 Preview Safe</title>
+<style>
+:root{--ui:#172033;--paper:#f8f7f2;--ink:#172033;--accent:#2d68d8;--teacher-w:420px}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:"Hiragino Sans","Yu Gothic",sans-serif;background:#101827;color:#eef3ff}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{height:100%;display:grid;grid-template-columns:var(--teacher-w) 7px 1fr}.teacher{padding:14px;background:linear-gradient(180deg,#172033,#111827);border-right:1px solid #35405a;overflow:auto}.teacher-resizer{cursor:ew-resize;background:#101827;border-left:1px solid #29364f;border-right:1px solid #29364f;min-width:7px}.brand{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}.brand h1{font-size:19px;margin:0}.version{font-size:12px;color:#aeb9d0}.panel{background:rgba(255,255,255,.045);border:1px solid #34415e;border-radius:14px;padding:12px;margin-bottom:11px}.panel h2{font-size:13px;margin:0 0 9px;color:#c9d4eb}.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.col{display:grid;gap:8px}.btn{border:1px solid #4a5a7d;background:#26334e;color:#fff;border-radius:9px;padding:8px 11px;font-weight:700}.btn.primary{background:#2d68d8;border-color:#2d68d8}.btn.danger{background:#7f1d1d;border-color:#9f3030}.btn.small{padding:6px 8px;font-size:12px}.field{display:grid;gap:5px}.field label{font-size:12px;color:#cfd8ea}.field input,.field textarea,.field select,select,input[type=color]{width:100%;background:#101827;color:#eef3ff;border:1px solid #485776;border-radius:8px;padding:8px}.field textarea{min-height:74px;resize:vertical}.status,.help{font-size:12px;color:#b9c4d9;line-height:1.55}.progress{height:8px;background:#0d1421;border-radius:999px;overflow:hidden;border:1px solid #3a4560}.progress>div{height:100%;background:#4f8df7}.steps{display:grid;gap:6px;max-height:220px;overflow:auto}.step{padding:9px 10px;line-height:1.45;border-radius:8px;border:1px solid #3a4662;color:#c7d0e1;font-size:12px;background:#172137}.step.active{border-color:#76a7ff;background:#233d68;color:#fff}.stage-wrap{position:relative;min-width:0;min-height:0;background:#0a1020;padding:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}.canvas-viewport{position:relative;width:100%;height:100%;overflow:hidden;display:flex;align-items:center;justify-content:center}.student-stage{position:absolute;width:1280px;height:720px;overflow:hidden;border-radius:16px;background:var(--paper);color:var(--ink);box-shadow:0 20px 70px rgba(0,0,0,.45);transform-origin:center center}.slide{position:absolute;inset:0;padding:42px 54px;background:var(--paper);overflow:hidden}.slide-title{font-size:52px;margin:0 0 22px;font-weight:800}.board{display:grid;gap:14px;font-size:32px;line-height:1.35}.reveal{opacity:0;visibility:hidden;transform:translateY(10px)}.reveal.visible{opacity:1;visibility:visible;transform:none}.item{position:absolute;min-width:80px;min-height:44px;cursor:move}.item.selected{outline:4px solid #2d68d8;outline-offset:3px}.text-item{white-space:pre-wrap;overflow:visible;font-size:36px;font-weight:700;line-height:1.25;padding:6px 8px;border-radius:7px}.image-item{display:flex;align-items:center;justify-content:center;background:#fff;border:2px solid #d9dfeb;border-radius:12px;overflow:hidden}.image-item img{width:100%;height:100%;object-fit:contain;display:block}.physics-item{background:transparent!important;border:0!important;border-radius:0!important;overflow:visible!important}.physics-item img{background:transparent!important}.physics-item .image-caption{display:none!important}.physics-item.selected{outline:3px dashed #2d68d8;outline-offset:4px}.image-caption{position:absolute;left:8px;bottom:8px;background:rgba(15,23,42,.82);color:#fff;padding:4px 7px;border-radius:6px;font-size:15px}.resize-handle{display:none;position:absolute;right:-8px;bottom:-8px;width:18px;height:18px;border-radius:50%;background:#2d68d8;border:3px solid #fff;cursor:nwse-resize}.selected .resize-handle{display:block}.tap-hint{position:absolute;right:18px;bottom:12px;color:#9aa3b1;font-size:12px}.silent-cover{display:none;position:absolute;inset:0;z-index:90}.silent .silent-cover{display:block}.fullscreen .teacher{display:none}.fullscreen .app{grid-template-columns:1fr}.fullscreen .stage-wrap{padding:0}.fullscreen .student-stage{border-radius:0}.window-status{font-size:12px;color:#aeb9d0}.window-status.on{color:#8ee6aa}.range-row{display:grid;grid-template-columns:62px 1fr 64px;gap:8px;align-items:center}.range-row input{width:100%}.range-value{font-size:12px;text-align:right}.layer-list{display:grid;gap:5px;max-height:170px;overflow:auto}.layer{padding:7px;border:1px solid #3a4662;border-radius:7px;font-size:12px;background:#172137;cursor:pointer}.layer.active{background:#294b80;border-color:#76a7ff}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}@media(max-width:900px){.app{grid-template-columns:1fr}.teacher-resizer{display:none}.teacher{max-height:48vh}.stage-wrap{min-height:52vh}}
+
+.math-item{display:flex;align-items:center;justify-content:center;padding:8px 12px;font-size:42px;overflow:visible;background:transparent}.move-grip{display:none;position:absolute;left:50%;top:-30px;transform:translateX(-50%);padding:5px 14px;border-radius:999px;background:#2d68d8;color:#fff;font-size:13px;font-weight:800;cursor:grab;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.25)}.selected.image-item .move-grip{display:block}.nudge-grid{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(3,34px);gap:4px;justify-content:center}.nudge-grid button{padding:4px}.latex-preview{min-height:52px;background:#f8f7f2;color:#172033;border-radius:8px;padding:8px;overflow:auto}
+.math-render{font-family:"Times New Roman","STIX Two Math","Cambria Math",serif;white-space:nowrap;line-height:1.25;display:inline-block}.math-render sub{font-size:.62em;line-height:1;vertical-align:baseline;position:relative;top:.38em}.math-render sup{font-size:.62em;line-height:1;vertical-align:baseline;position:relative;top:-.62em}.property-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.property-grid .wide{grid-column:1/-1}.hidden{display:none!important}.live-edit{outline:3px dashed #f59e0b!important;cursor:text!important}.math-frac{display:inline-grid;grid-template-rows:auto 1px auto;align-items:center;text-align:center;vertical-align:middle;margin:0 .12em}.math-frac>.bar{height:1px;background:currentColor;min-width:100%}.math-sqrt{display:inline-flex;align-items:flex-start}.math-sqrt>.radicand{border-top:1.5px solid currentColor;padding:0 .08em}.math-vec{position:relative;display:inline-block;padding-top:.12em}.math-vec:before{content:"→";position:absolute;font-size:.62em;left:50%;top:-.55em;transform:translateX(-50%)}.layer{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center}.layer-tools{display:flex;gap:3px}.layer-tools button{padding:3px 6px;border-radius:5px;border:1px solid #55627d;background:#253451;color:#fff;font-size:11px}.selection-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.timeline-bar{position:sticky;bottom:0;margin:12px -14px -14px;padding:10px 14px 14px;background:#0d1421;border-top:1px solid #3a4560;z-index:6}.timeline-bar h2{font-size:13px;margin:0 0 7px;color:#c9d4eb}.timeline-count{font-size:13px;font-weight:800;color:#eef3ff;margin-bottom:8px}.timeline-track{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.tl-step{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:48px;max-width:78px;border:1px solid #3a4662;background:#172137;border-radius:8px;padding:6px 5px;color:#c7d0e1;font-size:10px;line-height:1.25;text-align:center}.tl-step .tl-mark{font-size:15px;line-height:1;white-space:nowrap}.tl-step .tl-label{white-space:normal;word-break:break-word;color:#aeb9d0}.tl-step.tl-current{border-color:#76a7ff;background:#233d68;color:#fff}.tl-step.tl-current .tl-label{color:#dce6ff}.tl-step.tl-shown{border-color:#2f7a4d;background:#163826;color:#d8f5e3}.tl-step.tl-shown .tl-label{color:#bdf0d1}
+.color-palette{display:flex;flex-wrap:wrap;gap:7px;padding:7px 0}.color-swatch{width:30px;height:30px;border-radius:8px;border:2px solid rgba(255,255,255,.55);box-shadow:0 1px 4px rgba(0,0,0,.35);padding:0;position:relative}.color-swatch:hover{transform:scale(1.08)}.color-swatch.active::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:16px;color:#fff;text-shadow:0 1px 4px #000}.color-swatch.light.active::after{color:#172033;text-shadow:none}.palette-label{font-size:11px;color:#aeb9d0;margin-top:2px}
+.teacher-script-editor{min-height:150px!important;line-height:1.65}
+.script-toolbar{display:flex;gap:7px;flex-wrap:wrap}
+.script-prompter{display:grid;gap:10px;padding:11px;background:#0d1421;border:1px solid #3a4662;border-radius:10px;max-height:320px;overflow:auto}
+.script-empty{font-size:12px;color:#8f9bb1;line-height:1.6}
+.script-paragraph{margin:0;color:#eef3ff;font-size:14px;line-height:1.75;white-space:pre-wrap}
+.script-step-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid #5f78a8;background:#203354;color:#fff;border-radius:9px;padding:9px 11px;font-weight:800;text-align:left}
+.script-step-btn:hover{background:#294878;border-color:#8bb2ff}
+.script-step-btn.current{background:#2d68d8;border-color:#9ec0ff;box-shadow:0 0 0 2px rgba(118,167,255,.22)}
+.script-step-btn.past{background:#173a29;border-color:#438361;color:#dcf7e6}
+.script-step-btn .script-step-state{font-size:11px;font-weight:700;color:#cbd7ee;white-space:nowrap}
+.script-step-btn.past .script-step-state{color:#b9edcd}
+.script-help-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;color:#aeb9d0}
+.fx-btn.on{background:#233d68;border-color:#76a7ff;color:#fff}.item.fx-highlight{background:rgba(255,214,10,.32);box-shadow:0 0 0 6px rgba(255,214,10,.32);border-radius:8px}.fx-circle{position:absolute;inset:-14px;border:4px solid #e8452c;border-radius:50%;pointer-events:none}.fx-underline{position:absolute;left:-3%;right:-3%;bottom:-12px;height:6px;background:#2d68d8;border-radius:3px;pointer-events:none}.fx-arrow{position:absolute;left:50%;top:-42px;transform:translateX(-50%);font-size:32px;line-height:1;color:#e8452c;text-shadow:0 2px 5px rgba(0,0,0,.35);pointer-events:none}.fx-spotlight-overlay{position:absolute;inset:0;background:rgba(4,7,14,.62);pointer-events:none}@keyframes fxFlashPulse{0%,100%{opacity:1}16%{opacity:.15}33%{opacity:1}50%{opacity:.15}66%{opacity:1}83%{opacity:.15}}.item.fx-flash{animation:fxFlashPulse 1.3s ease-in-out}
+
+.flow-presenter-area{display:none}.flow-kicker{font-size:12px;letter-spacing:.12em;color:#8eb4ff;font-weight:900;margin:4px 0 7px}.flow-kicker.next-label{color:#9ba7bd;margin-top:16px}.flow-card{border-radius:16px;padding:18px;white-space:pre-wrap;line-height:1.55;font-weight:800}.flow-card.now{min-height:145px;background:#203d70;border:2px solid #76a7ff;font-size:24px;color:#fff}.flow-card.next{min-height:92px;background:#151f31;border:1px solid #46536d;font-size:17px;color:#cbd5e7}.flow-card.empty{color:#8490a6;font-weight:600}.presenter-controls{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:16px}.presenter-nav{min-height:58px;font-size:18px}.presenter-mode .app{grid-template-columns:minmax(400px,480px) 1fr}.presenter-mode .teacher{padding:18px;overflow:auto}.presenter-mode .teacher>.panel:not(:first-of-type):not(#teacherScriptPanel),.presenter-mode .timeline-bar{display:none}.presenter-mode .flow-editor-area{display:none}.presenter-mode .flow-presenter-area{display:block}.presenter-mode #teacherScriptPanel{border-color:#4e6ea8;background:rgba(41,72,120,.18)}.presenter-mode .brand{position:sticky;top:-18px;background:#172033;padding:12px 0;z-index:10}.presenter-mode #presenterModeBtn{background:#7f1d1d;border-color:#9f3030}.presenter-mode .item{cursor:default}.presenter-mode .item.selected{outline:none}.presenter-mode .resize-handle,.presenter-mode .move-grip{display:none!important}@media(max-width:900px){.presenter-mode .app{grid-template-columns:1fr}.presenter-mode .teacher{max-height:54vh}.flow-card.now{font-size:21px;min-height:120px}}
+
+.physics-parts-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.physics-part-btn{min-height:44px;white-space:normal;line-height:1.2}.physics-template-btn{min-height:48px}.physics-inline{display:grid;grid-template-columns:1fr 1fr;gap:8px}.physics-note{font-size:11px;color:#aeb9d0;line-height:1.5;padding:8px 10px;border:1px dashed #44506a;border-radius:8px;background:#101827}@media(max-width:900px){.physics-parts-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v0.20 integrated workspace */
+:root{--cockpit-h:210px;--motion:.36s}
+.stage-wrap{display:grid!important;grid-template-rows:minmax(0,1fr) 8px var(--cockpit-h);align-items:stretch!important;justify-content:stretch!important;padding:12px!important;gap:0}
+.canvas-viewport{min-height:0}
+.cockpit-resizer{height:8px;cursor:ns-resize;background:#182239;border-top:1px solid #34415e;border-bottom:1px solid #34415e;border-radius:6px;margin:0 6px}
+.cockpit{background:#111a2b;border:1px solid #34415e;border-radius:13px;padding:10px 12px;overflow:auto;display:grid;grid-template-columns:minmax(320px,1.3fr) minmax(300px,1fr);gap:10px;min-height:0}
+.cockpit-section{border:1px solid #33415c;border-radius:10px;padding:8px;background:#151f31;min-width:0}.cockpit-title{font-size:11px;color:#9fb0cc;font-weight:800;letter-spacing:.08em;margin-bottom:7px}.cockpit-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.cockpit .btn{padding:6px 9px;font-size:12px}.cockpit .btn.big-next{font-size:17px;padding:10px 22px;min-width:120px}.screen-strip{display:flex;gap:6px;overflow-x:auto;padding:2px 0}.screen-chip{position:relative;min-width:72px;padding:7px 9px;border:1px solid #46536d;border-radius:8px;background:#1b2941;color:#dce6f7;font-weight:800}.screen-chip.active{border-color:#76a7ff;background:#244b84}.screen-chip.live::after{content:'LIVE';position:absolute;right:4px;top:2px;font-size:8px;color:#8ee6aa}.live-indicator{color:#8ee6aa;font-weight:800}.preview-indicator{color:#f6c86b;font-weight:800}.board-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:80;pointer-events:none;overflow:visible}.board-overlay.draw-active{pointer-events:auto;touch-action:none}.live-pointer{position:absolute;z-index:88;pointer-events:none;display:none;transform:translate(-50%,-50%);width:24px;height:24px;border:4px solid #ef4444;border-radius:50%;box-shadow:0 0 0 3px rgba(255,255,255,.7);transition:opacity .18s}.stick-pointer{position:absolute;z-index:87;pointer-events:none;display:none;width:170px;height:5px;background:#2a2f39;transform-origin:left center;border-radius:999px;box-shadow:0 1px 3px rgba(0,0,0,.35)}.stick-pointer::after{content:'➤';position:absolute;right:-17px;top:-14px;font-size:27px;color:#ef4444;transform:rotate(0deg)}
+.item{transition:opacity var(--motion) ease,filter var(--motion) ease,transform var(--motion) ease}.item.reveal{opacity:0;transform:translateY(4px);pointer-events:none}.item.reveal.visible{opacity:1;transform:none;pointer-events:auto}.item.timeline-dim{opacity:.28!important;filter:saturate(.45)}.item.manual-hidden{opacity:0!important;pointer-events:none!important}.item.locked{cursor:not-allowed}.item.locked .resize-handle{display:none!important}.item.timeline-exited{opacity:0!important;pointer-events:none!important}.layer .layer-state{display:flex;gap:3px}.layer-state button{min-width:28px}.mask-item{background:#f8f7f2;border:2px dashed #8290a8;border-radius:8px}.pdf-item embed{pointer-events:none}.media-box{display:grid;gap:6px}.media-status{font-size:11px;color:#aeb9d0}.notes-composer{min-height:130px!important}.quiet-chip{border-color:#455b82!important}.mode-on{background:#2d68d8!important;border-color:#76a7ff!important}.camera-preview{width:100%;max-height:180px;background:#05070b;border-radius:8px;object-fit:contain}.audio-meter{font-size:11px;color:#cbd6e9}.source-badge{font-size:10px;padding:2px 6px;border-radius:999px;background:#22304a;color:#cbd6e9}.focus-mode .teacher,.focus-mode .teacher-resizer{display:none}.focus-mode .app{grid-template-columns:1fr}.focus-mode .stage-wrap{padding:8px!important}
+@media(max-width:1050px){.app{grid-template-columns:minmax(280px,var(--teacher-w)) 7px 1fr}.cockpit{grid-template-columns:1fr}.stage-wrap{--cockpit-h:250px}}
+
+
+/* v0.26 — keep full EDIT mode; PRESENT is a no-scroll card overlay */
+.mode-dock{position:fixed;right:12px;top:10px;z-index:9999;display:flex;gap:6px;padding:5px;background:rgba(10,16,32,.92);border:1px solid #44506a;border-radius:12px;backdrop-filter:blur(8px)}
+.mode-dock .btn{min-width:88px;font-weight:900}
+.mode-dock .mode-active{background:#315f9f;border-color:#76a7ff;color:#fff}
+body:not(.presenter-mode) #modeEditBtn{background:#315f9f;border-color:#76a7ff;color:#fff}
+body.presenter-mode #modePresentBtn{background:#315f9f;border-color:#76a7ff;color:#fff}
+
+.presenter-card-tabs{display:none;gap:6px;align-items:center}
+.presenter-card-tab{border:1px solid #46536d;background:#151f31;color:#cbd5e7;border-radius:10px;padding:8px 13px;font-weight:800;min-height:38px}
+.presenter-card-tab.active{background:#244b84;border-color:#76a7ff;color:#fff}
+.presenter-card-counter{margin-left:auto;color:#9fb0cc;font-size:12px;font-weight:800}
+.presenter-card-deck{display:none;min-height:0;position:relative}
+.presenter-live-card{position:absolute;inset:0;border-radius:18px;padding:18px;overflow:hidden;display:none;flex-direction:column;background:#151f31;border:1px solid #46536d}
+.presenter-live-card.active{display:flex}
+.presenter-live-card.now-card{background:#203d70;border:2px solid #76a7ff}
+.presenter-live-card.next-card{background:#151f31;border:1px solid #46536d}
+.presenter-live-card .card-kicker{font-size:12px;letter-spacing:.12em;color:#9fc0ff;font-weight:900;margin-bottom:10px}
+.presenter-live-card .card-body{white-space:pre-wrap;font-size:clamp(18px,2.2vw,30px);line-height:1.55;font-weight:800;overflow:hidden}
+.presenter-live-card.next-card .card-body{font-size:clamp(16px,1.7vw,22px);color:#d1daea}
+
+/* PRESENT mode: one iPad screen, no page scroll. EDIT mode remains unchanged. */
+.presenter-mode{overflow:hidden;height:100dvh}
+.presenter-mode .app{height:100dvh;min-height:0;overflow:hidden;grid-template-columns:minmax(320px,40vw) 8px minmax(0,1fr)!important}
+.presenter-mode .teacher{height:100dvh;max-height:none!important;overflow:hidden!important;padding:12px;display:grid;grid-template-rows:auto minmax(0,1fr);gap:10px}
+.presenter-mode .brand{position:static!important;top:auto!important;padding:4px 0!important;background:#172033!important;padding-right:190px!important}
+.presenter-mode .teacher>.panel{display:none!important}
+.presenter-mode #teacherScriptPanel{display:block!important;margin:0;min-height:0;overflow:hidden;border-color:#4e6ea8;background:rgba(41,72,120,.18)}
+.presenter-mode #teacherScriptPanel h2{display:none}
+.presenter-mode .flow-editor-area{display:none!important}
+.presenter-mode .flow-presenter-area{display:grid!important;height:100%;min-height:0;grid-template-rows:auto minmax(0,1fr) auto;gap:8px}
+.presenter-mode .presenter-card-tabs{display:flex}
+.presenter-mode .presenter-card-deck{display:block}
+.presenter-mode .flow-kicker,.presenter-mode .flow-card{display:none!important}
+.presenter-mode .presenter-controls{margin:0;grid-template-columns:1fr 1.35fr;gap:8px}
+.presenter-mode .presenter-nav{min-height:52px}
+.presenter-mode .teacher-resizer,.presenter-mode .cockpit-resizer{display:none!important}
+.presenter-mode .stage-wrap{height:100dvh;min-height:0;grid-template-rows:minmax(0,1fr) 180px!important;padding:10px!important;gap:8px}
+.presenter-mode .canvas-viewport{min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.presenter-mode .student-stage{max-height:100%;max-width:100%;aspect-ratio:16/9}
+.presenter-mode .cockpit{height:180px;min-height:180px;overflow:hidden!important;grid-template-columns:1.2fr 1fr;gap:8px;padding:8px 10px}
+.presenter-mode .cockpit-section{overflow:hidden;padding:7px}
+.presenter-mode .cockpit-title{margin-bottom:5px}
+.presenter-mode .cockpit-row{gap:5px;flex-wrap:wrap}
+.presenter-mode .cockpit .btn{padding:5px 8px;font-size:11px;min-height:31px}
+.presenter-mode .cockpit .big-next{font-size:16px;min-width:106px;min-height:40px}
+.presenter-mode .screen-strip{overflow:hidden!important;flex-wrap:wrap;max-height:72px;align-content:flex-start}
+.presenter-mode .screen-chip{min-width:58px;padding:6px 7px}
+.presenter-mode #addScreenBtn,.presenter-mode #duplicateScreenBtn,.presenter-mode #overviewBtn,.presenter-mode #focusModeBtn{display:none}
+@media(max-width:900px){
+ .presenter-mode .app{grid-template-columns:minmax(260px,38vw) 6px minmax(0,1fr)!important}
+ .presenter-mode .teacher{display:grid!important;max-height:none!important}
+ .presenter-mode .cockpit{grid-template-columns:1fr 1fr}
+}
+
+
+.save-toast{position:fixed;right:16px;bottom:16px;z-index:100000;padding:8px 12px;border-radius:10px;background:#173326;color:#dff7e8;border:1px solid #2f7a4d;font-size:13px;opacity:0;pointer-events:none;transition:opacity .18s ease}.save-toast.show{opacity:1}.save-toast.error{background:#4a1f24;color:#ffe9ec;border-color:#a94a57}
+</style>
+
+</head>
+<body>
+<div class="mode-dock" id="modeDock"><button class="btn small" id="modeEditBtn" type="button">✏️ EDIT</button><button class="btn small" id="modePresentBtn" type="button">▶ PRESENT</button></div>
+<div class="app">
+<aside class="teacher">
+<div class="brand"><h1>Teaching OS</h1><div class="row"><button class="btn small" id="presenterModeBtn">▶ PRESENT</button><span class="version">v0.26 Stability Fix</span></div></div>
+<section class="panel"><h2>授業例・進行</h2><div class="col"><select id="lessonSelect"><option value="fiber">家庭科：繊維の種類</option><option value="physics">物理：等加速度運動</option><option value="blank">空白ボード</option></select><div class="row"><button class="btn primary" id="prevBtn">← 戻る</button><button class="btn primary" id="nextBtn">次へ →</button><button class="btn" id="resetBtn">最初へ</button></div><div id="stepText" class="status"></div><div class="progress"><div id="progressBar"></div></div></div></section>
+<section class="panel" id="teacherScriptPanel">
+<h2>🧭 Teaching Flow（先生用・生徒画面には表示されません）</h2>
+<div class="col flow-editor-area">
+<div class="field">
+<label for="teacherScriptInput">授業の流れを書く</label>
+<textarea id="teacherScriptInput" class="teacher-script-editor" placeholder="🎤 今日は繊維の分類について学習します。
+
+[[BUILD_STEP:2]]
+
+❓ 天然繊維には何があるでしょう？
+
+[[BUILD_STEP:3]]
+
+🧶 綿の実物を見せる"></textarea>
+</div>
+<div class="script-toolbar">
+<button class="btn primary small" id="insertCurrentBuildStepBtn">現在のStepを挿入</button>
+<button class="btn small" id="insertNextBuildStepBtn">次のStepを挿入</button>
+<button class="btn small cue-btn" data-cue="🎤 ">🎤 話す</button>
+<button class="btn small cue-btn" data-cue="❓ ">❓ 質問</button>
+<button class="btn small cue-btn" data-cue="🧪 ">🧪 実験</button>
+<button class="btn small cue-btn" data-cue="✏️ ">✏️ 板書</button>
+<button class="btn small cue-btn" data-cue="⚠️ ">⚠️ 注意</button>
+<button class="btn small" id="clearTeacherScriptBtn">Flowを消去</button>
+</div>
+<div class="help">各Build Stepの後に、その段階で話すこと・質問・実演を書きます。授業モードでは「今」と「次」だけを表示します。</div>
+<div id="teacherScriptPrompter" class="script-prompter"></div>
+</div>
+<div class="flow-presenter-area">
+  <div class="presenter-card-tabs" id="presenterCardTabs"><button type="button" class="presenter-card-tab active" data-presenter-card="now">NOW</button><button type="button" class="presenter-card-tab" data-presenter-card="next">NEXT</button><span class="presenter-card-counter" id="presenterCardCounter">CARD NOW</span></div>
+  <div class="presenter-card-deck"><div class="presenter-live-card now-card active" id="presenterNowCard"><div class="card-kicker">NOW · STEP <span id="presenterNowCardStep">1</span></div><div class="card-body" id="presenterNowCardBody"></div></div><div class="presenter-live-card next-card" id="presenterNextCard"><div class="card-kicker">NEXT · STEP <span id="presenterNextCardStep">2</span></div><div class="card-body" id="presenterNextCardBody"></div></div></div>
+  <div class="flow-kicker">NOW · STEP <span id="presenterStepNow">1</span></div>
+  <div id="presenterNow" class="flow-card now"></div>
+  <div class="flow-kicker next-label">NEXT · STEP <span id="presenterStepNext">2</span></div>
+  <div id="presenterNext" class="flow-card next"></div>
+  <div class="presenter-controls">
+    <button class="btn presenter-nav" id="presenterPrevBtn">← 戻る</button>
+    <button class="btn primary presenter-nav" id="presenterNextBtn">次へ →</button>
+  </div>
+</div>
+</section>
+
+<section class="panel"><h2>文字を追加・編集</h2><div class="col"><div class="field"><label for="textInput">表示したい文字</label><textarea id="textInput" placeholder="例：植物繊維
+綿・麻"></textarea></div><div class="mini-grid"><div class="field"><label>文字サイズ</label><input id="textSize" type="number" min="16" max="100" value="36"></div><div class="field"><label>表示段階</label><input id="textStep" type="number" min="1" max="30" value="1"></div></div><div class="row"><button class="btn primary" id="addTextBtn">文字を追加</button><button class="btn" id="updateTextBtn">選択文字に反映</button></div><div class="help">既存文字は、画面または「要素一覧」で選択すると上の欄に読み込まれます。一部だけ直して「選択文字に反映」を押してください。</div></div></section>
+
+<section class="panel"><h2>数式を入れる（LaTeX）</h2><div class="col"><div class="field"><label for="latexInput">LaTeX形式</label><textarea id="latexInput" placeholder="例：v=v_0+at
+例：\frac{1}{2}mv^2"></textarea></div><div class="mini-grid"><div class="field"><label>数式サイズ</label><input id="latexSize" type="number" min="20" max="100" value="46"></div><div class="field"><label>表示段階</label><input id="latexStep" type="number" min="1" max="30" value="1"></div></div><div class="row"><button class="btn primary" id="addLatexBtn">数式を追加</button><button class="btn" id="updateLatexBtn">選択数式を更新</button></div><div class="help">LaTeXコードを入力すると、数式として表示します。<code>v=v_0+at</code>、<code>\[v=v_0+at\]</code>、<code>$$v=v_0+at$$</code>のいずれでも入力できます。</div></div></section>
+<section class="panel"><h2>図を入れる</h2><div class="col"><div class="field"><label>画像ファイル</label><input id="imageInput" type="file" accept="image/*"></div><div class="field"><label>図の名前</label><input id="imageCaptionInput" type="text" placeholder="例：綿の断面図"></div><div class="mini-grid"><div class="field"><label>幅</label><input id="imageWidth" type="number" min="100" max="900" value="420"></div><div class="field"><label>高さ</label><input id="imageHeight" type="number" min="80" max="560" value="240"></div></div><div class="field"><label>表示段階</label><input id="imageStep" type="number" min="1" max="30" value="1"></div><button class="btn primary" id="addImageBtn">図を追加</button><div class="help">図の上に出る青い「図を移動」バー、または図そのものをドラッグできます。右下の丸で大きさを変更します。</div></div></section>
+<section class="panel" id="sourceLayerPanel"><h2>📚 Source Layer（教材原本は変更しない）</h2><div class="col"><div class="field"><label>PDF / 画像 / 動画 Source</label><input id="sourceInput" type="file" accept="application/pdf,image/*,video/*"></div><div class="mini-grid"><div class="field"><label>Source名</label><input id="sourceTitle" placeholder="教科書・資料名"></div><div class="field"><label>版・年度</label><input id="sourceEdition" placeholder="例：2026版"></div></div><div class="row"><button class="btn small" id="addSourceBtn">Sourceを現在画面へ</button><button class="btn small" id="addMaskBtn">Reveal Mask</button><button class="btn small" id="bookmarkBtn">★ Bookmark</button></div><div id="bookmarkStatus" class="help">SourceとInstruction（Fade・書込み・Timeline）は別レイヤーとして扱います。</div></div></section>
+<section class="panel" id="knowledgePresenterPanel"><h2>📝 Notes → Presentation</h2><div class="col"><div class="field"><label>普段のノート / 学習メモ</label><textarea id="studyNotes" class="notes-composer" placeholder="勉強・調査しながらここに書きます。必要な部分を選択して、そのままStudent Screenへ送れます。"></textarea></div><div class="row"><button class="btn small" id="notesToScreenBtn">選択部分をStudent Screenへ</button><button class="btn small" id="notesToPresenterBtn">選択部分をPresenter Noteへ</button></div><div class="help">ノートとプレゼンを別々に作らず、同じ知識から表示用・発表者用を作るための入口です。</div></div></section>
+<section class="panel" id="mediaPanel"><h2>🎬 Media / Camera</h2><div class="col"><div class="field"><label>動画</label><input id="videoInput" type="file" accept="video/*"></div><button class="btn small" id="addVideoBtn">動画をStudent Screenへ追加</button><div class="field"><label>このStudent ScreenのMP3/BGM</label><input id="audioInput" type="file" accept="audio/mpeg,audio/*"></div><div class="row"><button class="btn small" id="attachAudioBtn">音声を登録</button><button class="btn small" id="audioPlayBtn">▶/Ⅱ</button><button class="btn small" id="audioFadeBtn">Fade Out</button></div><div id="audioStatus" class="media-status">Audio: なし</div><div class="row"><button class="btn small" id="cameraStartBtn">📷 Camera</button><button class="btn small" id="cameraCaptureBtn">撮影→新しいScreen</button></div><video id="cameraPreview" class="camera-preview hidden" autoplay playsinline muted></video><div class="help">Cameraはブラウザの許可が必要です。撮影した画像は新しいStudent Screenとして保持できます。</div></div></section>
+<section class="panel" id="physicsPartsPanel"><h2>⚙️ 物理図パーツ</h2><div class="col">
+<div class="physics-note">シミュレータではなく、問題図を速く作るための部品箱です。追加後は通常の図と同じように移動・拡大縮小・重なり変更・削除ができます。</div>
+<div class="physics-inline"><div class="field"><label>斜面角</label><input id="physicsAngleInput" type="number" min="5" max="70" value="30"></div><div class="field"><label>ラベル</label><input id="physicsLabelInput" type="text" value="m" maxlength="12"></div></div>
+<div class="physics-parts-grid">
+<button class="btn small physics-part-btn" data-physics="cart">台車</button><button class="btn small physics-part-btn" data-physics="block">物体</button><button class="btn small physics-part-btn" data-physics="slope">斜面</button>
+<button class="btn small physics-part-btn" data-physics="weight">おもり</button><button class="btn small physics-part-btn" data-physics="fixedPulley">定滑車</button><button class="btn small physics-part-btn" data-physics="movablePulley">動滑車</button>
+<button class="btn small physics-part-btn" data-physics="pendulum">振り子</button><button class="btn small physics-part-btn" data-physics="spring">ばね</button><button class="btn small physics-part-btn" data-physics="rope">糸・ロープ</button>
+<button class="btn small physics-part-btn" data-physics="axes">x-y座標軸</button><button class="btn small physics-part-btn" data-physics="localAxes">斜面座標軸</button><button class="btn small physics-part-btn" data-physics="vector">ベクトル</button>
+<button class="btn small physics-part-btn" data-physics="ground">床・地面</button><button class="btn small physics-part-btn" data-physics="wall">壁</button><button class="btn small physics-part-btn" data-physics="guide">補助破線</button>
+</div>
+<div class="field"><label>よく使う組み合わせ</label><div class="col">
+<button class="btn physics-template-btn" data-physics-template="incline">斜面＋物体＋局所座標軸</button>
+<button class="btn physics-template-btn" data-physics-template="cartPulley">台車＋定滑車＋おもり</button>
+<button class="btn physics-template-btn" data-physics-template="pendulum">振り子＋鉛直基準線＋角度</button>
+</div></div>
+</div></section>
+<section class="panel"><h2>選択オブジェクトを編集（部分修正）</h2><div class="col"><div id="propertyEmpty" class="help">画面上の文字・数式・図、または要素一覧から選択してください。</div><div id="propertyEditor" class="col hidden"><div class="field"><label>内容（文字・数式・図の名前）</label><textarea id="propContent" placeholder="選択した内容がここに入ります"></textarea></div><div class="property-grid"><div class="field"><label>フォント</label><select id="propFont"><option value='"Hiragino Sans","Yu Gothic",sans-serif'>ゴシック</option><option value='"Yu Mincho","Hiragino Mincho ProN",serif'>明朝</option><option value='Arial,sans-serif'>Arial</option><option value='"Times New Roman","Cambria Math",serif'>数式・欧文</option></select></div><div class="field"><label>文字色</label><input id="propColor" type="color" value="#172033">
+<div class="palette-label">よく使う色</div><div id="propColorPalette" class="color-palette"></div></div><div class="field"><label>文字・数式サイズ</label><input id="propSize" type="number" min="12" max="140" value="36"></div><div class="field"><label>表示段階</label><input id="propStep" type="number" min="1" max="50" value="1"></div><div class="field"><label>消える段階（0=消さない）</label><input id="propExitStep" type="number" min="0" max="50" value="0"></div><div class="field"><label>薄くする段階（0=なし）</label><input id="propDimStep" type="number" min="0" max="50" value="0"></div><div class="field"><label>出現/消去</label><select id="propMotion"><option value="fade">静かなFade</option><option value="instant">即時</option></select></div><div class="field"><label>幅</label><input id="propWidth" type="number" min="60" max="1200" value="400"></div><div class="field"><label>高さ</label><input id="propHeight" type="number" min="40" max="680" value="100"></div></div><button class="btn primary" id="applyPropertiesBtn">変更を選択オブジェクトへ反映</button><div class="help">①画面上の文字を1回クリックすると、現在の全文が上の内容欄へ読み込まれます。②「食物繊維」の「食」だけを「植」に直します。③反映ボタンを押します。全文を打ち直す必要はありません。</div></div></div></section>
+<section class="panel"><h2>選択中の要素</h2><div class="col"><div id="selectionStatus" class="status">未選択</div><div class="selection-actions"><button class="btn small" id="smallerBtn">小さく</button><button class="btn small" id="largerBtn">大きく</button><button class="btn small" id="earlierBtn">← 先に表示</button><button class="btn small" id="laterBtn">後で表示 →</button><button class="btn small" id="frontBtn">重なりを前へ</button><button class="btn small" id="backBtn">重なりを後ろへ</button></div><div class="field"><label>位置を微調整（10px）</label><div class="nudge-grid"><span></span><button class="btn small" id="moveUpBtn">↑</button><span></span><button class="btn small" id="moveLeftBtn">←</button><button class="btn small" id="moveCenterBtn">中央</button><button class="btn small" id="moveRightBtn">→</button><span></span><button class="btn small" id="moveDownBtn">↓</button><span></span></div></div><button class="btn danger small" id="deleteBtn">選択要素を削除</button></div></section>
+<section class="panel"><h2>Teacher Tools</h2><div class="col"><div id="effectsHint" class="help">強調したい文字・数式・図を選択してください。</div><div class="row hidden" id="effectsButtons"><button class="btn small fx-btn" id="fxHighlightBtn">ハイライト</button><button class="btn small fx-btn" id="fxSpotlightBtn">スポットライト</button><button class="btn small fx-btn" id="fxCircleBtn">丸で囲む</button><button class="btn small fx-btn" id="fxUnderlineBtn">下線</button><button class="btn small fx-btn" id="fxArrowBtn">矢印</button><button class="btn small" id="fxFlashBtn">フラッシュ</button><button class="btn danger small" id="fxClearBtn">効果を解除</button></div><div class="help">授業中にすばやく強調できます。スポットライトは常に1つだけ有効。フラッシュは一瞬だけ点滅して自動的に消えます。</div></div></section>
+<section class="panel"><h2>要素一覧</h2><div id="layerList" class="layer-list"></div></section>
+<section class="panel"><h2>画面表示</h2><div class="row"><button class="btn small" id="fullscreenBtn">生徒画面を全画面</button><button class="btn small" id="studentWindowBtn">別ウィンドウ</button><button class="btn small" id="silentBtn">Silent Mode</button></div><div id="windowStatus" class="window-status">別ウィンドウ：未接続</div><div class="help">F：全画面、Esc：教師UIへ戻る。要素選択中は矢印キーで10px移動、Shift＋矢印で1px移動</div></section>
+<section class="panel"><h2>文字・背景</h2><div class="col"><div class="field"><label>フォント</label><select id="fontSelect"><option value='"Hiragino Sans","Yu Gothic",sans-serif'>ゴシック</option><option value='"Yu Mincho","Hiragino Mincho ProN",serif'>明朝</option><option value='Arial,sans-serif'>Arial</option></select></div>
+<div class="field"><label>文字色</label><input type="color" id="textColor" value="#172033"><div id="textColorPalette" class="color-palette"></div></div>
+<div class="field"><label>背景色</label><input type="color" id="bgColor" value="#f8f7f2"><div id="bgColorPalette" class="color-palette"></div></div>
+<div class="help">パレットはワンクリックで選択できます。細かな色は従来どおりカラーピッカーから選べます。</div></div></section>
+<section class="panel"><h2>Build Sequence</h2><div id="steps" class="steps"></div></section>
+<section class="timeline-bar" id="buildTimeline"><h2>Build Timeline</h2><div id="timelineCount" class="timeline-count"></div><div id="timelineTrack" class="timeline-track"></div></section>
+</aside>
+<div class="teacher-resizer" id="teacherResizer" title="左右にドラッグしてTeacher Viewの幅を変更"></div>
+<main class="stage-wrap" id="stageWrap"><div class="canvas-viewport" id="canvasViewport"><div class="student-stage" id="studentStage"><div class="slide" id="slide"></div><svg id="boardSvg" class="board-overlay" viewBox="0 0 1280 720" preserveAspectRatio="none"></svg><div id="livePointer" class="live-pointer"></div><div id="stickPointer" class="stick-pointer"></div><div class="silent-cover"></div><div class="tap-hint">Student Screen</div></div></div><div class="cockpit-resizer" id="cockpitResizer" title="上下にドラッグしてStudent View / Cockpitの大きさを変更"></div><section class="cockpit" id="cockpit"><div class="cockpit-section"><div class="cockpit-title">STUDENT SCREENS · <span id="liveStateText" class="live-indicator">LIVE A</span> · <span id="editStateText" class="preview-indicator">EDIT A</span></div><div id="screenStrip" class="screen-strip"></div><div class="cockpit-row" style="margin-top:7px"><button class="btn" id="addScreenBtn">＋ Screen</button><button class="btn" id="duplicateScreenBtn">複製</button><button class="btn primary" id="takeLiveBtn">TAKE LIVE</button><button class="btn" id="liveBackBtn">↩ 前LIVE</button><button class="btn" id="overviewBtn">一覧</button><button class="btn" id="focusModeBtn">Focus</button></div></div><div class="cockpit-section"><div class="cockpit-title">LIVE CONTROL</div><div class="cockpit-row"><button class="btn" id="cockpitPrevBtn">←</button><button class="btn primary big-next" id="cockpitNextBtn">NEXT →</button><button class="btn quiet-chip" id="freezeBtn">FREEZE</button><button class="btn" id="blackBtn">BLACK</button></div><div class="cockpit-row" style="margin-top:7px"><button class="btn cockpit-tool" data-tool="select">SELECT</button><button class="btn cockpit-tool" data-tool="pointer">● Pointer</button><button class="btn cockpit-tool" data-tool="stick">━━➤</button><button class="btn cockpit-tool" data-tool="pen">✎ Pen</button><button class="btn cockpit-tool" data-tool="circle">○ Circle</button><button class="btn cockpit-tool" data-tool="arrow">→ Arrow</button><button class="btn cockpit-tool" data-tool="text">T Text</button><button class="btn" id="boardUndoBtn">↶ Undo</button><button class="btn" id="boardClearBtn">Clear Board</button><label class="small" style="display:flex;align-items:center;gap:4px">Pen Stability <select id="penStability" style="width:auto;padding:5px"><option value="low">LOW</option><option value="mid" selected>MID</option><option value="high">HIGH</option></select></label></div></div></section></main>
+</div>
+<script>
+'use strict';
+// Explicit DOM bindings for embedded/sandbox browser compatibility
+const modeDock=document.getElementById('modeDock');
+const modeEditBtn=document.getElementById('modeEditBtn');
+const modePresentBtn=document.getElementById('modePresentBtn');
+const presenterModeBtn=document.getElementById('presenterModeBtn');
+const lessonSelect=document.getElementById('lessonSelect');
+const prevBtn=document.getElementById('prevBtn');
+const nextBtn=document.getElementById('nextBtn');
+const resetBtn=document.getElementById('resetBtn');
+const stepText=document.getElementById('stepText');
+const progressBar=document.getElementById('progressBar');
+const teacherScriptPanel=document.getElementById('teacherScriptPanel');
+const teacherScriptInput=document.getElementById('teacherScriptInput');
+const insertCurrentBuildStepBtn=document.getElementById('insertCurrentBuildStepBtn');
+const insertNextBuildStepBtn=document.getElementById('insertNextBuildStepBtn');
+const clearTeacherScriptBtn=document.getElementById('clearTeacherScriptBtn');
+const teacherScriptPrompter=document.getElementById('teacherScriptPrompter');
+const presenterCardTabs=document.getElementById('presenterCardTabs');
+const presenterCardCounter=document.getElementById('presenterCardCounter');
+const presenterNowCard=document.getElementById('presenterNowCard');
+const presenterNowCardStep=document.getElementById('presenterNowCardStep');
+const presenterNowCardBody=document.getElementById('presenterNowCardBody');
+const presenterNextCard=document.getElementById('presenterNextCard');
+const presenterNextCardStep=document.getElementById('presenterNextCardStep');
+const presenterNextCardBody=document.getElementById('presenterNextCardBody');
+const presenterStepNow=document.getElementById('presenterStepNow');
+const presenterNow=document.getElementById('presenterNow');
+const presenterStepNext=document.getElementById('presenterStepNext');
+const presenterNext=document.getElementById('presenterNext');
+const presenterPrevBtn=document.getElementById('presenterPrevBtn');
+const presenterNextBtn=document.getElementById('presenterNextBtn');
+const textInput=document.getElementById('textInput');
+const textSize=document.getElementById('textSize');
+const textStep=document.getElementById('textStep');
+const addTextBtn=document.getElementById('addTextBtn');
+const updateTextBtn=document.getElementById('updateTextBtn');
+const latexInput=document.getElementById('latexInput');
+const latexSize=document.getElementById('latexSize');
+const latexStep=document.getElementById('latexStep');
+const addLatexBtn=document.getElementById('addLatexBtn');
+const updateLatexBtn=document.getElementById('updateLatexBtn');
+const imageInput=document.getElementById('imageInput');
+const imageCaptionInput=document.getElementById('imageCaptionInput');
+const imageWidth=document.getElementById('imageWidth');
+const imageHeight=document.getElementById('imageHeight');
+const imageStep=document.getElementById('imageStep');
+const addImageBtn=document.getElementById('addImageBtn');
+const sourceLayerPanel=document.getElementById('sourceLayerPanel');
+const sourceInput=document.getElementById('sourceInput');
+const sourceTitle=document.getElementById('sourceTitle');
+const sourceEdition=document.getElementById('sourceEdition');
+const addSourceBtn=document.getElementById('addSourceBtn');
+const addMaskBtn=document.getElementById('addMaskBtn');
+const bookmarkBtn=document.getElementById('bookmarkBtn');
+const bookmarkStatus=document.getElementById('bookmarkStatus');
+const knowledgePresenterPanel=document.getElementById('knowledgePresenterPanel');
+const studyNotes=document.getElementById('studyNotes');
+const notesToScreenBtn=document.getElementById('notesToScreenBtn');
+const notesToPresenterBtn=document.getElementById('notesToPresenterBtn');
+const mediaPanel=document.getElementById('mediaPanel');
+const videoInput=document.getElementById('videoInput');
+const addVideoBtn=document.getElementById('addVideoBtn');
+const audioInput=document.getElementById('audioInput');
+const attachAudioBtn=document.getElementById('attachAudioBtn');
+const audioPlayBtn=document.getElementById('audioPlayBtn');
+const audioFadeBtn=document.getElementById('audioFadeBtn');
+const audioStatus=document.getElementById('audioStatus');
+const cameraStartBtn=document.getElementById('cameraStartBtn');
+const cameraCaptureBtn=document.getElementById('cameraCaptureBtn');
+const cameraPreview=document.getElementById('cameraPreview');
+const physicsPartsPanel=document.getElementById('physicsPartsPanel');
+const physicsAngleInput=document.getElementById('physicsAngleInput');
+const physicsLabelInput=document.getElementById('physicsLabelInput');
+const propertyEmpty=document.getElementById('propertyEmpty');
+const propertyEditor=document.getElementById('propertyEditor');
+const propContent=document.getElementById('propContent');
+const propFont=document.getElementById('propFont');
+const propColor=document.getElementById('propColor');
+const propColorPalette=document.getElementById('propColorPalette');
+const propSize=document.getElementById('propSize');
+const propStep=document.getElementById('propStep');
+const propExitStep=document.getElementById('propExitStep');
+const propDimStep=document.getElementById('propDimStep');
+const propMotion=document.getElementById('propMotion');
+const propWidth=document.getElementById('propWidth');
+const propHeight=document.getElementById('propHeight');
+const applyPropertiesBtn=document.getElementById('applyPropertiesBtn');
+const selectionStatus=document.getElementById('selectionStatus');
+const smallerBtn=document.getElementById('smallerBtn');
+const largerBtn=document.getElementById('largerBtn');
+const earlierBtn=document.getElementById('earlierBtn');
+const laterBtn=document.getElementById('laterBtn');
+const frontBtn=document.getElementById('frontBtn');
+const backBtn=document.getElementById('backBtn');
+const moveUpBtn=document.getElementById('moveUpBtn');
+const moveLeftBtn=document.getElementById('moveLeftBtn');
+const moveCenterBtn=document.getElementById('moveCenterBtn');
+const moveRightBtn=document.getElementById('moveRightBtn');
+const moveDownBtn=document.getElementById('moveDownBtn');
+const deleteBtn=document.getElementById('deleteBtn');
+const effectsHint=document.getElementById('effectsHint');
+const effectsButtons=document.getElementById('effectsButtons');
+const fxHighlightBtn=document.getElementById('fxHighlightBtn');
+const fxSpotlightBtn=document.getElementById('fxSpotlightBtn');
+const fxCircleBtn=document.getElementById('fxCircleBtn');
+const fxUnderlineBtn=document.getElementById('fxUnderlineBtn');
+const fxArrowBtn=document.getElementById('fxArrowBtn');
+const fxFlashBtn=document.getElementById('fxFlashBtn');
+const fxClearBtn=document.getElementById('fxClearBtn');
+const layerList=document.getElementById('layerList');
+const fullscreenBtn=document.getElementById('fullscreenBtn');
+const studentWindowBtn=document.getElementById('studentWindowBtn');
+const silentBtn=document.getElementById('silentBtn');
+const windowStatus=document.getElementById('windowStatus');
+const fontSelect=document.getElementById('fontSelect');
+const textColor=document.getElementById('textColor');
+const textColorPalette=document.getElementById('textColorPalette');
+const bgColor=document.getElementById('bgColor');
+const bgColorPalette=document.getElementById('bgColorPalette');
+const buildTimeline=document.getElementById('buildTimeline');
+const timelineCount=document.getElementById('timelineCount');
+const timelineTrack=document.getElementById('timelineTrack');
+const teacherResizer=document.getElementById('teacherResizer');
+const stageWrap=document.getElementById('stageWrap');
+const canvasViewport=document.getElementById('canvasViewport');
+const studentStage=document.getElementById('studentStage');
+const boardSvg=document.getElementById('boardSvg');
+const livePointer=document.getElementById('livePointer');
+const stickPointer=document.getElementById('stickPointer');
+const cockpitResizer=document.getElementById('cockpitResizer');
+const cockpit=document.getElementById('cockpit');
+const liveStateText=document.getElementById('liveStateText');
+const editStateText=document.getElementById('editStateText');
+const screenStrip=document.getElementById('screenStrip');
+const addScreenBtn=document.getElementById('addScreenBtn');
+const duplicateScreenBtn=document.getElementById('duplicateScreenBtn');
+const takeLiveBtn=document.getElementById('takeLiveBtn');
+const liveBackBtn=document.getElementById('liveBackBtn');
+const overviewBtn=document.getElementById('overviewBtn');
+const focusModeBtn=document.getElementById('focusModeBtn');
+const cockpitPrevBtn=document.getElementById('cockpitPrevBtn');
+const cockpitNextBtn=document.getElementById('cockpitNextBtn');
+const freezeBtn=document.getElementById('freezeBtn');
+const blackBtn=document.getElementById('blackBtn');
+const boardUndoBtn=document.getElementById('boardUndoBtn');
+const boardClearBtn=document.getElementById('boardClearBtn');
+const penStability=document.getElementById('penStability');
+const vp=document.getElementById('vp');
+const remotePointer=document.getElementById('remotePointer');
+const remoteStick=document.getElementById('remoteStick');
+const boardArrow=document.getElementById('boardArrow');
+
+const DESIGN_W=1280,DESIGN_H=720;
+const stage=document.getElementById('studentStage'),slide=document.getElementById('slide');
+let lessonKey='fiber',currentStep=0,silent=false,studentWindow=null,selectedId=null,zCounter=20,spotlightId=null,teacherScript='';
+let items=[];
+let screens=[],activeScreenId='A',liveScreenId='A',liveSnapshotHTML='',liveFrozen=false,blackout=false,liveHistory=[];
+let boardTool='select',boardActions=[],boardDrawing=null,pointerTimer=null,cameraStream=null,screenAudio=null;
+let previousRenderedStep=0,mediaDbPromise=null,mediaObjectUrls=new Map();
+let saveToastTimer=null,audioTimers=new Set();
+function mediaDB(){
+ if(mediaDbPromise)return mediaDbPromise;
+ mediaDbPromise=new Promise((resolve,reject)=>{
+   const req=indexedDB.open('TeachingOSMedia',1);
+   req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('media'))db.createObjectStore('media')};
+   req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ return mediaDbPromise;
+}
+async function storeMediaBlob(blob,name='media'){
+ const id='media_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+ const db=await mediaDB();
+ await new Promise((resolve,reject)=>{const tx=db.transaction('media','readwrite');tx.objectStore('media').put({blob,name,type:blob.type},id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+ return id;
+}
+async function getMediaURL(id){
+ if(!id)return null;if(mediaObjectUrls.has(id))return mediaObjectUrls.get(id);
+ const db=await mediaDB();
+ const rec=await new Promise((resolve,reject)=>{const tx=db.transaction('media','readonly');const r=tx.objectStore('media').get(id);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+ if(!rec?.blob)return null;const url=URL.createObjectURL(rec.blob);mediaObjectUrls.set(id,url);return url;
+}
+function showSaveStatus(message,isError=false){
+ let el=document.getElementById('saveToast');
+ if(!el){el=document.createElement('div');el.id='saveToast';el.className='save-toast';document.body.appendChild(el)}
+ el.textContent=message;el.classList.toggle('error',!!isError);el.classList.add('show');
+ clearTimeout(saveToastTimer);saveToastTimer=setTimeout(()=>el.classList.remove('show'),isError?3200:1100);
+}
+function releaseMediaObjectUrls(){for(const url of mediaObjectUrls.values())try{URL.revokeObjectURL(url)}catch(e){}mediaObjectUrls.clear()}
+window.addEventListener('beforeunload',releaseMediaObjectUrls);
+
+async function hydrateMediaRefs(){
+ const refs=[];
+ for(const sc of screens){
+   for(const it of (sc.items||[]))if(it.mediaId)refs.push((async()=>{const u=await getMediaURL(it.mediaId);if(u)it.src=u})());
+   if(sc.audioMediaId)refs.push((async()=>{const u=await getMediaURL(sc.audioMediaId);if(u)sc.audioUrl=u})());
+ }
+ await Promise.allSettled(refs);
+ const sc=activeScreen();if(sc){items=deepCopy(sc.items||items);boardActions=deepCopy(sc.board||boardActions)}
+ renderAll();
+}
+function sendLivePointer(kind,x,y,visible=true){
+ if(!studentWindow||studentWindow.closed||activeScreenId!==liveScreenId||liveFrozen)return;
+ studentWindow.postMessage({source:'teacher-pointer',kind,x,y,visible},'*');
+}
+
+const screenLetters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const presets={
+ fiber:[
+  {type:'text',text:'繊維の種類',x:60,y:45,w:760,h:80,size:54,step:0,z:1},
+  {type:'text',text:'植物繊維',x:95,y:155,w:330,h:65,size:42,step:1,z:2},
+  {type:'text',text:'動物繊維',x:95,y:255,w:330,h:65,size:42,step:2,z:3},
+  {type:'text',text:'綿　　麻',x:450,y:155,w:360,h:65,size:38,step:3,z:4},
+  {type:'text',text:'羊毛　　絹',x:450,y:255,w:360,h:65,size:38,step:4,z:5}
+ ],
+ physics:[
+  {type:'text',text:'等加速度直線運動',x:60,y:45,w:800,h:80,size:54,step:0,z:1},
+  {type:'text',text:'静止していた物体が、2.0 m/s²の一定加速度で5.0 s進んだ。',x:70,y:150,w:1100,h:90,size:30,step:1,z:2},
+  {type:'text',text:'v₀ = 0 m/s\na = 2.0 m/s²\nt = 5.0 s',x:90,y:285,w:380,h:190,size:34,step:2,z:3},
+  {type:'math',latex:'v=v_0+at',x:520,y:300,w:440,h:90,size:46,step:3,z:4},
+  {type:'math',latex:'v=0+2.0\\times 5.0',x:520,y:405,w:550,h:90,size:42,step:4,z:5},
+  {type:'math',latex:'v=10\\,\\mathrm{m/s}',x:520,y:515,w:420,h:100,size:52,step:5,z:6}
+ ],blank:[]};
+function clonePreset(k){return presets[k].map((o,i)=>({...o,id:'item_'+Date.now()+'_'+i}))}
+function maxStep(){return Math.max(0,...items.map(i=>i.step||0))}
+function fitStage(){const r=document.getElementById('canvasViewport').getBoundingClientRect();const s=Math.min(r.width/DESIGN_W,r.height/DESIGN_H);stage.style.transform=`scale(${Math.max(.1,s)})`}
+window.addEventListener('resize',fitStage);new ResizeObserver(fitStage).observe(document.getElementById('canvasViewport'));
+function loadLesson(k){lessonKey=k;currentStep=0;selectedId=null;items=clonePreset(k);restoreTeacherScript();renderAll();fitStage()}
+function normalizeLatex(value){
+  let s=(value||'').trim();
+  if((s.startsWith('\\[')&&s.endsWith('\\]'))||(s.startsWith('$$')&&s.endsWith('$$'))){s=s.slice(2,-2).trim()}
+  else if((s.startsWith('\\(')&&s.endsWith('\\)'))||(s.startsWith('$')&&s.endsWith('$'))){s=s.slice(s.startsWith('$')?1:2,s.endsWith('$')?-1:-2).trim()}
+  return s;
+}
+function latexGroup(s,pos){
+  if(s[pos]==='{'){let depth=1,i=pos+1;for(;i<s.length;i++){if(s[i]==='{')depth++;if(s[i]==='}'&&--depth===0)return [s.slice(pos+1,i),i+1]}return [s.slice(pos+1),s.length]}
+  if(s[pos]==='\\'){const m=s.slice(pos).match(/^\\[A-Za-z]+/);if(m)return [m[0],pos+m[0].length]}
+  return [s[pos]||'',pos+1]
+}
+function latexToHtml(input){
+  const greek={alpha:'α',beta:'β',gamma:'γ',delta:'δ',Delta:'Δ',theta:'θ',Theta:'Θ',lambda:'λ',mu:'μ',pi:'π',rho:'ρ',sigma:'σ',Sigma:'Σ',phi:'φ',omega:'ω',Omega:'Ω',varepsilon:'ε'};
+  const ops={times:'×',cdot:'·',pm:'±',le:'≤',ge:'≥',neq:'≠',approx:'≈',infty:'∞',rightarrow:'→',leftarrow:'←'};
+  let s=normalizeLatex(input), out='', i=0;
+  const esc=x=>escapeHtml(x);
+  while(i<s.length){
+    if(s[i]==='\\'){
+      const m=s.slice(i).match(/^\\([A-Za-z]+|[,;! ])?/);const cmd=m?m[1]||'':s[i+1];i+=m?m[0].length:2;
+      if(cmd==='frac'){const [a,p1]=latexGroup(s,i);const [b,p2]=latexGroup(s,p1);out+=`<span class="math-frac"><span>${latexToHtml(a)}</span><span class="bar"></span><span>${latexToHtml(b)}</span></span>`;i=p2;continue}
+      if(cmd==='sqrt'){const [a,p]=latexGroup(s,i);out+=`<span class="math-sqrt">√<span class="radicand">${latexToHtml(a)}</span></span>`;i=p;continue}
+      if(cmd==='vec'||cmd==='overrightarrow'){const [a,p]=latexGroup(s,i);out+=`<span class="math-vec">${latexToHtml(a)}</span>`;i=p;continue}
+      if(cmd==='mathrm'||cmd==='text'||cmd==='mathbf'||cmd==='mathit'){const [a,p]=latexGroup(s,i);const cls=cmd==='mathbf'?' style="font-weight:700"':cmd==='mathit'?' style="font-style:italic"':'';out+=`<span${cls}>${latexToHtml(a)}</span>`;i=p;continue}
+      if(cmd==='left'||cmd==='right')continue;
+      if(cmd===','||cmd===';'||cmd==='!'||cmd===' '){out+='&nbsp;';continue}
+      if(greek[cmd]){out+=greek[cmd];continue}if(ops[cmd]){out+=ops[cmd];continue}
+      out+=esc('\\'+cmd);continue;
+    }
+    if(s[i]==='_'||s[i]==='^'){const tag=s[i]==='_'?'sub':'sup';const [g,p]=latexGroup(s,i+1);out+=`<${tag}>${latexToHtml(g)}</${tag}>`;i=p;continue}
+    if(s[i]==='{'){const [g,p]=latexGroup(s,i);out+=latexToHtml(g);i=p;continue}
+    if(s[i]==='}') {i++;continue}
+    out+=esc(s[i]);i++;
+  }
+  return out;
+}
+function typesetMath(root){return Promise.resolve(root)}
+function itemName(it){if(it.type==='text')return '文字：'+it.text.replace(/\n/g,' ').slice(0,18);if(it.type==='math')return '数式：'+it.latex.replace(/\n/g,' ').slice(0,22);if(it.type==='video')return '動画：'+(it.caption||'video');if(it.type==='pdf')return 'PDF：'+(it.caption||'source');if(it.type==='mask')return 'Reveal Mask';return '図：'+(it.caption||'画像')}
+function shortLabel(it){if(it.type==='text')return (it.text.split('\n')[0]||'').trim().slice(0,10)||'文字';if(it.type==='math')return '数式';return (it.caption||'画像').slice(0,10)}
+function stepSummary(step){const its=items.filter(i=>(i.step||0)===step);if(!its.length)return'';const labels=[...new Set(its.map(shortLabel))];let text=labels.slice(0,2).join('・');if(labels.length>2)text+=` +${labels.length-2}`;return text}
+
+function teacherScriptStorageKey(){return 'teaching_os_v018_flow_'+lessonKey}
+function saveTeacherScript(){
+  teacherScript=teacherScriptInput.value;
+  try{localStorage.setItem(teacherScriptStorageKey(),teacherScript)}catch(e){}
+  renderTeacherScript();
+}
+function restoreTeacherScript(){
+  try{teacherScript=localStorage.getItem(teacherScriptStorageKey())||localStorage.getItem('teaching_os_v017_script_'+lessonKey)||''}catch(e){teacherScript=''}
+  teacherScriptInput.value=teacherScript;
+  renderTeacherScript();
+}
+function insertScriptStep(stepNumber){
+  const token=`\n[[BUILD_STEP:${Math.max(1,stepNumber)}]]\n`;
+  const input=teacherScriptInput;
+  const start=input.selectionStart??input.value.length;
+  const end=input.selectionEnd??start;
+  input.setRangeText(token,start,end,'end');
+  input.focus();
+  saveTeacherScript();
+}
+function insertCue(text){
+  const input=teacherScriptInput;
+  const start=input.selectionStart??input.value.length;
+  const end=input.selectionEnd??start;
+  input.setRangeText(text,start,end,'end');
+  input.focus();saveTeacherScript();
+}
+function flowByStep(){
+  const map={};let active=1;
+  const parts=teacherScriptInput.value.split(/(\[\[BUILD_STEP:\d+\]\])/g);
+  for(const part of parts){
+    const m=part.match(/^\[\[BUILD_STEP:(\d+)\]\]$/);
+    if(m){active=Math.max(1,Number(m[1]));continue}
+    const text=part.trim();if(text)map[active]=(map[active]?map[active]+'\n\n':'')+text;
+  }
+  return map;
+}
+function updatePresenterFlow(){
+  if(!presenterNow)return;
+  const flow=flowByStep(),nowStep=currentStep+1,nextStep=Math.min(maxStep()+1,currentStep+2);
+  presenterStepNow.textContent=nowStep;presenterStepNext.textContent=nextStep;
+  const now=flow[nowStep]||'このStepのTeacher Cueはまだありません。';
+  const next=currentStep<maxStep()?(flow[nextStep]||'次のStepのTeacher Cueはまだありません。'):'授業の最後です。';
+  presenterNow.textContent=now;presenterNext.textContent=next;
+  presenterNow.classList.toggle('empty',!flow[nowStep]);presenterNext.classList.toggle('empty',currentStep<maxStep()&&!flow[nextStep]);
+  const ncs=document.getElementById('presenterNowCardStep'),xcs=document.getElementById('presenterNextCardStep');
+  const ncb=document.getElementById('presenterNowCardBody'),xcb=document.getElementById('presenterNextCardBody');
+  if(ncs)ncs.textContent=nowStep;if(xcs)xcs.textContent=nextStep;if(ncb)ncb.textContent=now;if(xcb)xcb.textContent=next;
+}
+function setPresenterCard(which='now'){
+  document.querySelectorAll('.presenter-card-tab').forEach(b=>b.classList.toggle('active',b.dataset.presenterCard===which));
+  const now=document.getElementById('presenterNowCard'),next=document.getElementById('presenterNextCard');
+  if(now)now.classList.toggle('active',which==='now');
+  if(next)next.classList.toggle('active',which==='next');
+  const c=document.getElementById('presenterCardCounter');if(c)c.textContent='CARD '+which.toUpperCase();
+}
+function setPresentationMode(on){
+  document.body.classList.toggle('presenter-mode',!!on);
+  presenterModeBtn.textContent=on?'✏️ EDIT':'▶ PRESENT';
+  const e=document.getElementById('modeEditBtn'),p=document.getElementById('modePresentBtn');
+  if(e)e.classList.toggle('mode-active',!on);if(p)p.classList.toggle('mode-active',!!on);
+  selectedId=null;renderAll();
+  if(on)setPresenterCard('now');
+  requestAnimationFrame(fitStage);
+}
+function togglePresenterMode(){setPresentationMode(!document.body.classList.contains('presenter-mode'));}
+document.addEventListener('click',e=>{const b=e.target.closest?.('.presenter-card-tab');if(b)setPresenterCard(b.dataset.presenterCard)});
+function renderTeacherScript(){
+  if(!teacherScriptPrompter)return;
+  teacherScriptPrompter.innerHTML='';
+  const source=teacherScriptInput.value;
+  if(!source.trim()){
+    const empty=document.createElement('div');
+    empty.className='script-empty';
+    empty.textContent='ここに授業の台本を書くと、話す文章とBuild Stepボタンが順番に表示されます。';
+    teacherScriptPrompter.appendChild(empty);
+    return;
+  }
+  const parts=source.split(/(\[\[BUILD_STEP:\d+\]\])/g);
+  parts.forEach(part=>{
+    const match=part.match(/^\[\[BUILD_STEP:(\d+)\]\]$/);
+    if(match){
+      const stepNumber=Math.max(1,Number(match[1]));
+      const stepIndex=stepNumber-1;
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='script-step-btn '+(stepIndex===currentStep?'current':stepIndex<currentStep?'past':'future');
+      const summary=stepSummary(stepIndex);
+      btn.innerHTML=`<span>▶ Build Step ${stepNumber}${summary?`：${escapeHtml(summary)}`:''}</span><span class="script-step-state">${stepIndex===currentStep?'現在':stepIndex<currentStep?'表示済み':'ここへ進む'}</span>`;
+      btn.addEventListener('click',()=>{
+        currentStep=Math.max(0,Math.min(stepIndex,maxStep()));
+        renderAll();
+        btn.scrollIntoView({block:'nearest',behavior:'smooth'});
+      });
+      teacherScriptPrompter.appendChild(btn);
+    }else if(part){
+      const chunks=part.split(/\n{2,}/);
+      chunks.forEach(chunk=>{
+        if(!chunk.trim())return;
+        const p=document.createElement('p');
+        p.className='script-paragraph';
+        p.textContent=chunk.trim();
+        teacherScriptPrompter.appendChild(p);
+      });
+    }
+  });
+  updatePresenterFlow();
+}
+
+function renderTimeline(){timelineTrack.innerHTML='';const total=maxStep()+1;for(let s=0;s<total;s++){const btn=document.createElement('button');btn.type='button';const state=s===currentStep?'tl-current':s<currentStep?'tl-shown':'';btn.className='tl-step '+state;const mark=s===currentStep?'◎':s<currentStep?'●':'○';const summary=stepSummary(s);btn.innerHTML=`<span class="tl-mark">${mark}${s+1}</span>`+(summary?`<span class="tl-label">${escapeHtml(summary)}</span>`:'');btn.title=summary?`ステップ${s+1}：${summary}`:`ステップ${s+1}`;btn.addEventListener('click',()=>{currentStep=s;renderAll()});timelineTrack.appendChild(btn)}}
+function updateTimeline(){const total=maxStep()+1;timelineCount.textContent=`Current build step: ${currentStep+1} / ${total}`;renderTimeline()}
+function ensureEffects(it){if(!it.effects)it.effects={highlight:false,circle:false,underline:false,arrow:false};return it.effects}
+function renderObjectEffects(it,el){const fx=it.effects||{};el.classList.toggle('fx-highlight',!!fx.highlight);if(fx.circle){const c=document.createElement('span');c.className='fx-circle';c.contentEditable='false';c.setAttribute('aria-hidden','true');el.appendChild(c)}if(fx.underline){const u=document.createElement('span');u.className='fx-underline';u.contentEditable='false';u.setAttribute('aria-hidden','true');el.appendChild(u)}if(fx.arrow){const a=document.createElement('span');a.className='fx-arrow';a.textContent='↓';a.contentEditable='false';a.setAttribute('aria-hidden','true');el.appendChild(a)}}
+function updateEffectOverlays(){const old=slide.querySelector('.fx-spotlight-overlay');if(old)old.remove();if(!spotlightId)return;const targetEl=slide.querySelector(`.item[data-id="${spotlightId}"]`);if(!targetEl||!targetEl.classList.contains('visible'))return;const overlay=document.createElement('div');overlay.className='fx-spotlight-overlay';overlay.style.zIndex='100000';slide.appendChild(overlay);targetEl.style.zIndex='100001'}
+function renderAll(){slide.innerHTML='';items.slice().sort((a,b)=>a.z-b.z).forEach(it=>{const el=document.createElement('div');const kind=it.type==='text'?'text-item':it.type==='math'?'math-item':it.type==='video'?'image-item video-item':it.type==='pdf'?'image-item pdf-item':it.type==='mask'?'mask-item':'image-item';const physicsClass=it.physicsKind?' physics-item':'';el.className='item reveal '+kind+physicsClass+(it.id===selectedId?' selected':'');el.dataset.id=it.id;el.dataset.step=it.step;el.style.left=it.x+'px';el.style.top=it.y+'px';el.style.width=it.w+'px';el.style.height=it.h+'px';el.style.zIndex=it.z;el.style.fontFamily=it.fontFamily||'';const beforeExit=!it.exitStep||currentStep<(it.exitStep-1);const started=it.step<=currentStep;const exited=!!it.exitStep&&currentStep>=(it.exitStep-1);const visible=started&&!exited&&!it.manualHidden;el.classList.toggle('visible',visible);el.classList.toggle('timeline-exited',exited);el.classList.toggle('timeline-dim',!!it.dimStep&&currentStep>=(it.dimStep-1)&&beforeExit);el.classList.toggle('manual-hidden',!!it.manualHidden);el.classList.toggle('locked',!!it.locked);el.style.transitionDuration=(it.motion==='instant'?'0s':'.36s');if(it.type==='text'){el.textContent=it.text;el.style.fontSize=it.size+'px';el.style.color=it.color||'var(--ink)'}else if(it.type==='math'){el.innerHTML=`<span class="math-render">${latexToHtml(it.latex)}</span>`;el.style.fontSize=it.size+'px';el.style.color=it.color||'var(--ink)'}else if(it.type==='video'){el.innerHTML=`<video src="${it.src}" controls playsinline style="width:100%;height:100%;object-fit:contain;background:#000"></video>${it.caption?`<span class="image-caption">${escapeHtml(it.caption)}</span>`:''}<div class="move-grip">↕ 動画を移動 ↔</div>`}else if(it.type==='pdf'){el.innerHTML=`<embed src="${it.src}" type="application/pdf" style="width:100%;height:100%;background:#fff">${it.caption?`<span class="image-caption">${escapeHtml(it.caption)}</span>`:''}<div class="move-grip">↕ PDFを移動 ↔</div>`}else if(it.type==='mask'){el.style.background=it.color||'#f8f7f2';el.style.border='2px dashed #8290a8';el.style.borderRadius='8px';el.innerHTML='<span style="font-size:13px;color:#667085;position:absolute;right:8px;top:6px">MASK</span>'}else{el.innerHTML=`<img src="${it.src}" alt="${escapeHtml(it.caption||'図')}">${(!it.physicsKind&&it.caption)?`<span class="image-caption">${escapeHtml(it.caption)}</span>`:''}<div class="move-grip">↕ ${it.physicsKind?'パーツ':'図'}を移動 ↔</div>`}renderObjectEffects(it,el);const h=document.createElement('div');h.className='resize-handle';h.contentEditable='false';h.setAttribute('aria-hidden','true');el.appendChild(h);slide.appendChild(el);attachDrag(el,h);el.addEventListener('dblclick',ev=>{ev.stopPropagation();selectItem(it.id);if(it.type==='text'){el.contentEditable='true';el.classList.add('live-edit');el.focus();const r=document.createRange();r.selectNodeContents(el);const sel=getSelection();sel.removeAllRanges();sel.addRange(r);const finish=()=>{it.text=extractEditableText(el);el.contentEditable='false';el.classList.remove('live-edit');saveState();renderAll()};el.addEventListener('blur',finish,{once:true});el.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();el.blur()}if((e.metaKey||e.ctrlKey)&&e.key==='Enter'){e.preventDefault();el.blur()}})}else if(it.type==='math'){latexInput.focus();latexInput.select()}})});
+const stepDelta=currentStep-previousRenderedStep;if(stepDelta!==0){requestAnimationFrame(()=>{items.forEach(it=>{const el=slide.querySelector(`.item[data-id=\"${it.id}\"]`);if(!el||it.motion==='instant')return;if(stepDelta>0&&it.step===currentStep&&!it.manualHidden){el.animate([{opacity:0,transform:'translateY(4px)'},{opacity:1,transform:'none'}],{duration:360,easing:'ease-out'})}if(stepDelta>0&&it.exitStep&&currentStep===(it.exitStep-1)){el.animate([{opacity:1},{opacity:0}],{duration:360,easing:'ease-in',fill:'both'})}if(stepDelta<0&&it.exitStep&&previousRenderedStep===(it.exitStep-1)&&currentStep<(it.exitStep-1)){el.animate([{opacity:0},{opacity:1}],{duration:300,easing:'ease-out'})}})});previousRenderedStep=currentStep;}
+restoreBoardForActiveScreen();updateEffectOverlays();updateUI();renderTeacherScript();renderScreenStrip();const done=()=>{if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)};typesetMath(slide).then(done).catch(done)}
+
+
+const TEXT_PALETTE=['#172033','#000000','#ffffff','#d62828','#e85d04','#f4b400','#2e7d32','#00897b','#1565c0','#5e35b1','#ad1457','#795548'];
+const BG_PALETTE=['#f8f7f2','#ffffff','#fff4cc','#ffe0b2','#ffcdd2','#e1f5c4','#d8f3dc','#d9f0ff','#dbeafe','#e8def8','#f3e5f5','#263238'];
+function isLightColor(hex){
+  const h=hex.replace('#','');const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);
+  return (r*299+g*587+b*114)/1000>170;
+}
+function renderColorPalette(container,colors,input,onPick){
+  if(!container)return;
+  container.innerHTML='';
+  colors.forEach(color=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='color-swatch'+(isLightColor(color)?' light':'');
+    btn.style.background=color;
+    btn.title=color;
+    btn.setAttribute('aria-label',color);
+    btn.classList.toggle('active',input.value.toLowerCase()===color.toLowerCase());
+    btn.addEventListener('click',()=>{
+      input.value=color;
+      onPick(color);
+      renderColorPalette(container,colors,input,onPick);
+    });
+    container.appendChild(btn);
+  });
+}
+function refreshColorPalettes(){
+  renderColorPalette(textColorPalette,TEXT_PALETTE,textColor,color=>{
+    document.documentElement.style.setProperty('--ink',color);syncStudentWindow();
+  });
+  renderColorPalette(bgColorPalette,BG_PALETTE,bgColor,color=>{
+    document.documentElement.style.setProperty('--paper',color);syncStudentWindow();
+  });
+  renderColorPalette(propColorPalette,TEXT_PALETTE,propColor,color=>{
+    const it=items.find(x=>x.id===selectedId);
+    if(it&&it.type!=='image'){it.color=color;renderAll();loadPropertyEditor(it);saveState()}
+  });
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function extractEditableText(el){const copy=el.cloneNode(true);copy.querySelectorAll('.fx-circle,.fx-underline,.fx-arrow,.resize-handle,.move-grip').forEach(n=>n.remove());return copy.innerText.replace(/\u00a0/g,' ').trim()}
+function populateSelectionFields(it){
+ if(!it)return;
+ if(it.type==='text'){textInput.value=it.text;textSize.value=it.size;textStep.value=it.step+1}
+ if(it.type==='math'){latexInput.value=it.latex;latexSize.value=it.size;latexStep.value=it.step+1}
+ if(it.type==='image'){imageCaptionInput.value=it.caption||'';imageWidth.value=Math.round(it.w);imageHeight.value=Math.round(it.h);imageStep.value=it.step+1}
+ loadPropertyEditor(it);
+}
+function selectItemWithoutRender(id){
+ selectedId=id;
+ slide.querySelectorAll('.selected').forEach(n=>n.classList.toggle('selected',n.dataset.id===id));
+ const it=items.find(x=>x.id===id);
+ populateSelectionFields(it);
+ updateUI();
+}
+function attachDrag(el,handle){el.addEventListener('pointerdown',e=>{if(e.target===handle)return;e.stopPropagation();if(selectedId!==el.dataset.id){selectItemWithoutRender(el.dataset.id)}else{const chosen=items.find(x=>x.id===el.dataset.id);populateSelectionFields(chosen)}const it=items.find(x=>x.id===el.dataset.id);if(!it||it.locked)return;const sx=e.clientX,sy=e.clientY,ox=it.x,oy=it.y;const scale=stage.getBoundingClientRect().width/DESIGN_W;el.setPointerCapture?.(e.pointerId);const move=ev=>{it.x=Math.max(0,Math.min(DESIGN_W-it.w,ox+(ev.clientX-sx)/scale));it.y=Math.max(0,Math.min(DESIGN_H-it.h,oy+(ev.clientY-sy)/scale));el.style.left=it.x+'px';el.style.top=it.y+'px'};const up=()=>{removeEventListener('pointermove',move);removeEventListener('pointerup',up);saveState();if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)};addEventListener('pointermove',move);addEventListener('pointerup',up)});handle.addEventListener('pointerdown',e=>{e.stopPropagation();const it=items.find(x=>x.id===el.dataset.id);if(!it||it.locked)return;const sx=e.clientX,sy=e.clientY,ow=it.w,oh=it.h;const scale=stage.getBoundingClientRect().width/DESIGN_W;const move=ev=>{it.w=Math.max(80,Math.min(DESIGN_W-it.x,ow+(ev.clientX-sx)/scale));it.h=Math.max(50,Math.min(DESIGN_H-it.y,oh+(ev.clientY-sy)/scale));el.style.width=it.w+'px';el.style.height=it.h+'px'};const up=()=>{removeEventListener('pointermove',move);removeEventListener('pointerup',up);saveState();if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)};addEventListener('pointermove',move);addEventListener('pointerup',up)})}
+function selectItem(id){
+ selectedId=id;renderAll();const it=items.find(x=>x.id===id);if(!it)return;populateSelectionFields(it);
+}
+
+function loadPropertyEditor(it){
+ propertyEmpty.classList.add('hidden');propertyEditor.classList.remove('hidden');
+ propContent.value=it.type==='text'?it.text:it.type==='math'?it.latex:(it.caption||'');
+ propFont.value=it.fontFamily|| (it.type==='math'?'"Times New Roman","Cambria Math",serif':'"Hiragino Sans","Yu Gothic",sans-serif');
+ propColor.value=it.color||'#172033';propSize.value=Math.round(it.size||36);propStep.value=(it.step||0)+1;propExitStep.value=it.exitStep||0;propDimStep.value=it.dimStep||0;propMotion.value=it.motion||'fade';propWidth.value=Math.round(it.w);propHeight.value=Math.round(it.h);
+ propFont.disabled=it.type==='image';propColor.disabled=it.type==='image';propSize.disabled=it.type==='image';refreshColorPalettes();
+}
+function clearPropertyEditor(){propertyEmpty.classList.remove('hidden');propertyEditor.classList.add('hidden')}
+function renderStepsList(total){steps.innerHTML='';for(let s=0;s<total;s++){const div=document.createElement('div');div.className='step'+(s===currentStep?' active':'');const summary=stepSummary(s);div.textContent=`ステップ ${s+1}`+(summary?`：${summary}`:'（表示要素なし）');div.addEventListener('click',()=>{currentStep=s;renderAll()});steps.appendChild(div)}}
+
+function renderSelectionStatus(){
+  const it=items.find(x=>x.id===selectedId);
+  if(!it){
+    selectionStatus.textContent='未選択';
+    return;
+  }
+  const hidden=it.manualHidden?'・非表示':'';
+  const locked=it.locked?'・ロック中':'';
+  selectionStatus.textContent=`${itemName(it)} / Step ${(it.step||0)+1}${hidden}${locked}`;
+}
+
+function renderLayerList(){layerList.innerHTML='';items.slice().sort((a,b)=>b.z-a.z).forEach(it=>{const row=document.createElement('div');row.className='layer'+(it.id===selectedId?' active':'');const label=document.createElement('span');label.textContent=`${itemName(it)}（Step ${(it.step||0)+1}）`;row.appendChild(label);const tools=document.createElement('span');tools.className='layer-tools layer-state';const vis=document.createElement('button');vis.type='button';vis.textContent=it.manualHidden?'🙈':'👁';vis.title='表示/非表示';vis.addEventListener('click',ev=>{ev.stopPropagation();it.manualHidden=!it.manualHidden;renderAll();saveState()});tools.appendChild(vis);const lock=document.createElement('button');lock.type='button';lock.textContent=it.locked?'🔒':'🔓';lock.title='ロック';lock.addEventListener('click',ev=>{ev.stopPropagation();it.locked=!it.locked;renderAll();saveState()});tools.appendChild(lock);const del=document.createElement('button');del.type='button';del.textContent='削除';del.addEventListener('click',ev=>{ev.stopPropagation();items=items.filter(x=>x.id!==it.id);if(selectedId===it.id)selectedId=null;if(spotlightId===it.id)spotlightId=null;renderAll();saveState()});tools.appendChild(del);row.appendChild(tools);row.addEventListener('click',()=>selectItem(it.id));layerList.appendChild(row)})}
+function renderEffectsPanel(){
+  const it=items.find(x=>x.id===selectedId);
+  const has=!!it;
+  if(typeof effectsHint!=='undefined' && effectsHint) effectsHint.classList.toggle('hidden',has);
+  if(typeof effectsButtons!=='undefined' && effectsButtons) effectsButtons.classList.toggle('hidden',!has);
+  if(!has)return;
+  const fx=it.effects||{};
+  if(typeof fxHighlightBtn!=='undefined' && fxHighlightBtn) fxHighlightBtn.classList.toggle('on',!!fx.highlight);
+  if(typeof fxCircleBtn!=='undefined' && fxCircleBtn) fxCircleBtn.classList.toggle('on',!!fx.circle);
+  if(typeof fxUnderlineBtn!=='undefined' && fxUnderlineBtn) fxUnderlineBtn.classList.toggle('on',!!fx.underline);
+  if(typeof fxArrowBtn!=='undefined' && fxArrowBtn) fxArrowBtn.classList.toggle('on',!!fx.arrow);
+  if(typeof fxSpotlightBtn!=='undefined' && fxSpotlightBtn) fxSpotlightBtn.classList.toggle('on',spotlightId===it.id);
+}
+function updateUI(){updatePresenterFlow();const total=maxStep()+1;const summary=stepSummary(currentStep);stepText.textContent=`現在のステップ：${currentStep+1} / ${total}`+(summary?`（${summary}）`:'');progressBar.style.width=total>1?`${(currentStep/(total-1))*100}%`:'100%';renderStepsList(total);renderLayerList();renderSelectionStatus();renderEffectsPanel();updateTimeline()}
+function applySelectedProperties(){
+ const it=items.find(x=>x.id===selectedId);if(!it){alert('編集するオブジェクトを選択してください。');return}
+ const content=propContent.value;
+ if(it.type==='text')it.text=content;
+ else if(it.type==='math')it.latex=normalizeLatex(content);
+ else it.caption=content.trim();
+ if(it.type!=='image'){it.fontFamily=propFont.value;it.color=propColor.value;it.size=Math.max(12,+propSize.value||36)}
+ it.step=Math.max(0,(+propStep.value||1)-1);it.exitStep=Math.max(0,+propExitStep.value||0);it.dimStep=Math.max(0,+propDimStep.value||0);it.motion=propMotion.value||'fade';it.w=Math.max(60,+propWidth.value||it.w);it.h=Math.max(40,+propHeight.value||it.h);
+ currentStep=Math.max(currentStep,it.step);renderAll();loadPropertyEditor(it);saveState();
+}
+function next(){if(!silent&&currentStep<maxStep()){currentStep++;renderAll();saveState()}}function prev(){if(!silent&&currentStep>0){currentStep--;renderAll();saveState()}}
+function addText(){const txt=textInput.value.trim();if(!txt){alert('文字を入力してください。');return}const it={id:'item_'+Date.now(),type:'text',text:txt,x:80,y:100+items.length*18,w:Math.min(980,Math.max(240,txt.length*26)),h:Math.max(70,txt.split('\n').length*(+textSize.value*1.4)),size:+textSize.value,fontFamily:fontSelect.value,color:textColor.value,step:Math.max(0,+textStep.value-1),z:++zCounter};items.push(it);selectedId=it.id;renderAll();saveState()}
+function addLatex(){const latex=normalizeLatex(latexInput.value);if(!latex){alert('LaTeX形式の数式を入力してください。');return}const it={id:'item_'+Date.now(),type:'math',latex,x:140,y:150+items.length*12,w:760,h:100,size:+latexSize.value,fontFamily:'"Times New Roman","Cambria Math",serif',color:textColor.value,step:Math.max(0,+latexStep.value-1),z:++zCounter};items.push(it);selectedId=it.id;renderAll();saveState()}
+function updateSelectedLatex(){const it=items.find(x=>x.id===selectedId);if(!it||it.type!=='math'){alert('更新する数式を選択してください。');return}it.latex=normalizeLatex(latexInput.value);it.size=+latexSize.value;it.fontFamily=propFont?.value||it.fontFamily;it.color=propColor?.value||it.color;it.step=Math.max(0,+latexStep.value-1);renderAll();saveState()}
+function changeStep(delta){const it=items.find(x=>x.id===selectedId);if(!it)return;it.step=Math.max(0,it.step+delta);if(it.type==='text')textStep.value=it.step+1;if(it.type==='math')latexStep.value=it.step+1;if(it.type==='image')imageStep.value=it.step+1;currentStep=Math.max(currentStep,it.step);renderAll();saveState()}
+function setSpotlightTarget(id){spotlightId=(spotlightId===id)?null:id;renderAll()}
+function clearSpotlight(){spotlightId=null;renderAll()}
+function toggleObjectEffect(effectName){const it=items.find(x=>x.id===selectedId);if(!it){alert('効果を適用する要素を選択してください。');return}if(effectName==='spotlight'){setSpotlightTarget(it.id);return}const fx=ensureEffects(it);fx[effectName]=!fx[effectName];renderAll();saveState()}
+function clearObjectEffects(){const it=items.find(x=>x.id===selectedId);if(!it){alert('解除する要素を選択してください。');return}it.effects={highlight:false,circle:false,underline:false,arrow:false};if(spotlightId===it.id)spotlightId=null;renderAll();saveState()}
+function triggerFlashEffect(){const it=items.find(x=>x.id===selectedId);if(!it){alert('フラッシュする要素を選択してください。');return}const el=slide.querySelector(`.item[data-id="${it.id}"]`);if(!el||!el.classList.contains('visible'))return;el.classList.remove('fx-flash');void el.offsetWidth;el.classList.add('fx-flash');syncStudentWindow();clearTimeout(el._flashTimer);el._flashTimer=setTimeout(()=>{el.classList.remove('fx-flash');syncStudentWindow()},1300)}
+function nudgeSelected(dx,dy){const it=items.find(x=>x.id===selectedId);if(!it||it.locked)return;it.x=Math.max(0,Math.min(DESIGN_W-it.w,it.x+dx));it.y=Math.max(0,Math.min(DESIGN_H-it.h,it.y+dy));renderAll();saveState()}
+function centerSelected(){const it=items.find(x=>x.id===selectedId);if(!it)return;it.x=(DESIGN_W-it.w)/2;it.y=(DESIGN_H-it.h)/2;renderAll();saveState()}
+function addImage(){const f=imageInput.files[0];if(!f){alert('画像ファイルを選んでください。');return}const r=new FileReader();r.onload=()=>{const it={id:'item_'+Date.now(),type:'image',src:r.result,caption:imageCaptionInput.value.trim(),x:100,y:180,w:+imageWidth.value,h:+imageHeight.value,step:Math.max(0,+imageStep.value-1),z:++zCounter};items.push(it);selectedId=it.id;renderAll();saveState()};r.readAsDataURL(f)}
+async function addVideo(){const f=videoInput.files[0];if(!f){alert('動画ファイルを選んでください。');return}const mediaId=await storeMediaBlob(f,f.name);const url=await getMediaURL(mediaId);const it={id:'item_'+Date.now(),type:'video',src:url,mediaId,caption:f.name,x:120,y:130,w:720,h:405,step:currentStep,z:++zCounter,motion:'fade'};items.push(it);selectedId=it.id;renderAll();saveState()}
+
+function updateSelectedText(){const it=items.find(x=>x.id===selectedId);if(!it||it.type!=='text'){alert('更新する文字を選択してください。');return}it.text=textInput.value;it.size=+textSize.value;it.fontFamily=propFont?.value||it.fontFamily;it.color=propColor?.value||it.color;it.step=Math.max(0,+textStep.value-1);renderAll();saveState()}
+function resizeSelected(f){const it=items.find(x=>x.id===selectedId);if(!it)return;it.w=Math.max(80,it.w*f);it.h=Math.max(50,it.h*f);if(it.type==='text'||it.type==='math')it.size=Math.max(16,it.size*f);renderAll();saveState()}
+function svgDataUrl(svg){return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)))}
+function physicsSvg(kind){
+ const angle=Math.max(5,Math.min(70,+(document.getElementById('physicsAngleInput')?.value||30)));
+ const label=escapeHtml((document.getElementById('physicsLabelInput')?.value||'m').trim()||'m');
+ const head='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#1f2937"/></marker></defs><g stroke="#1f2937" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round">';
+ const tail='</g></svg>';
+ const map={
+  cart:`<rect x="70" y="80" width="150" height="70" rx="10" fill="#eef3f8"/><circle cx="105" cy="165" r="18" fill="#fff"/><circle cx="185" cy="165" r="18" fill="#fff"/><text x="145" y="124" text-anchor="middle" fill="#1f2937" stroke="none" font-size="34">${label}</text>`,
+  block:`<rect x="95" y="55" width="130" height="120" rx="8" fill="#eef3f8"/><text x="160" y="128" text-anchor="middle" fill="#1f2937" stroke="none" font-size="38">${label}</text>`,
+  slope:`<path d="M35 185 H285 L285 55 Z" fill="#eef3f8"/><path d="M215 185 A70 70 0 0 0 203 145" stroke-width="3"/><text x="224" y="168" fill="#1f2937" stroke="none" font-size="26">${angle}°</text>`,
+  weight:`<line x1="160" y1="20" x2="160" y2="75"/><rect x="110" y="75" width="100" height="110" rx="7" fill="#eef3f8"/><text x="160" y="142" text-anchor="middle" fill="#1f2937" stroke="none" font-size="36">${label}</text>`,
+  fixedPulley:`<line x1="160" y1="10" x2="160" y2="55"/><circle cx="160" cy="105" r="50" fill="#fff"/><circle cx="160" cy="105" r="7" fill="#1f2937"/><path d="M110 105 V195 M210 105 V195"/>`,
+  movablePulley:`<path d="M75 20 V115 A55 55 0 0 0 185 115 V20"/><circle cx="130" cy="115" r="48" fill="#fff"/><line x1="130" y1="163" x2="130" y2="205"/><rect x="95" y="182" width="70" height="28" fill="#eef3f8"/>`,
+  pendulum:`<circle cx="160" cy="28" r="6" fill="#1f2937"/><line x1="160" y1="28" x2="205" y2="155"/><circle cx="205" cy="155" r="28" fill="#eef3f8"/><line x1="160" y1="28" x2="160" y2="175" stroke-dasharray="10 10" stroke-width="3"/><path d="M160 90 A60 60 0 0 1 181 86" stroke-width="3"/><text x="183" y="78" fill="#1f2937" stroke="none" font-size="24">θ</text>`,
+  spring:`<line x1="30" y1="110" x2="65" y2="110"/><path d="M65 110 l18 -32 l25 64 l25 -64 l25 64 l25 -64 l25 64 l25 -32"/><line x1="233" y1="110" x2="290" y2="110"/>`,
+  rope:`<path d="M25 110 C90 35 220 185 295 110"/>`,
+  axes:`<line x1="45" y1="170" x2="285" y2="170" marker-end="url(#a)"/><line x1="90" y1="195" x2="90" y2="25" marker-end="url(#a)"/><text x="288" y="164" fill="#1f2937" stroke="none" font-size="24">x</text><text x="99" y="30" fill="#1f2937" stroke="none" font-size="24">y</text><circle cx="90" cy="170" r="4" fill="#1f2937"/>`,
+  localAxes:`<g transform="translate(75,155) rotate(-${angle})"><line x1="0" y1="0" x2="205" y2="0" marker-end="url(#a)"/><line x1="0" y1="0" x2="0" y2="-125" marker-end="url(#a)"/><text x="208" y="-8" fill="#1f2937" stroke="none" font-size="22">x′</text><text x="8" y="-126" fill="#1f2937" stroke="none" font-size="22">y′</text></g>`,
+  vector:`<line x1="45" y1="155" x2="265" y2="55" marker-end="url(#a)"/><text x="185" y="83" fill="#1f2937" stroke="none" font-size="28">${label}</text>`,
+  ground:`<line x1="25" y1="125" x2="295" y2="125"/><g stroke-width="2">${Array.from({length:12},(_,i)=>`<line x1="${35+i*22}" y1="125" x2="${20+i*22}" y2="150"/>`).join('')}</g>`,
+  wall:`<line x1="95" y1="20" x2="95" y2="205"/><g stroke-width="2">${Array.from({length:8},(_,i)=>`<line x1="95" y1="${35+i*22}" x2="70" y2="${20+i*22}"/>`).join('')}</g>`,
+  guide:`<line x1="30" y1="110" x2="290" y2="110" stroke-dasharray="12 10" stroke-width="3"/>`
+ };
+ return head+(map[kind]||map.block)+tail;
+}
+function addPhysicsPart(kind,x=140,y=160,w=240,h=165,step=currentStep){
+ const names={cart:'台車',block:'物体',slope:'斜面',weight:'おもり',fixedPulley:'定滑車',movablePulley:'動滑車',pendulum:'振り子',spring:'ばね',rope:'糸・ロープ',axes:'x-y座標軸',localAxes:'斜面座標軸',vector:'ベクトル',ground:'床・地面',wall:'壁',guide:'補助破線'};
+ const it={id:'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),type:'image',src:svgDataUrl(physicsSvg(kind)),caption:names[kind]||kind,x,y,w,h,step:Math.max(0,step),z:++zCounter,physicsKind:kind};
+ items.push(it);selectedId=it.id;renderAll();saveState();return it;
+}
+function addPhysicsTemplate(kind){
+ const st=currentStep;
+ if(kind==='incline'){
+   const a=addPhysicsPart('slope',155,360,430,295,st); a.caption='斜面';
+   addPhysicsPart('block',380,300,150,105,st); addPhysicsPart('localAxes',510,225,250,172,st);
+ }
+ if(kind==='cartPulley'){
+   addPhysicsPart('ground',70,430,610,160,st); addPhysicsPart('cart',145,330,220,150,st); addPhysicsPart('fixedPulley',620,250,170,117,st); addPhysicsPart('weight',740,390,125,150,st); addPhysicsPart('rope',330,285,370,150,st);
+ }
+ if(kind==='pendulum'){
+   addPhysicsPart('pendulum',370,160,300,300,st); addPhysicsPart('guide',375,250,290,120,st);
+ }
+ selectedId=null;renderAll();saveState();
+}
+document.querySelectorAll('[data-physics]').forEach(btn=>btn.addEventListener('click',()=>addPhysicsPart(btn.dataset.physics)));
+document.querySelectorAll('[data-physics-template]').forEach(btn=>btn.addEventListener('click',()=>addPhysicsTemplate(btn.dataset.physicsTemplate)));
+
+function deepCopy(v){return JSON.parse(JSON.stringify(v))}
+function activeScreen(){return screens.find(x=>x.id===activeScreenId)}
+function commitActiveScreen(){const sc=activeScreen();if(!sc)return;sc.items=deepCopy(items);sc.currentStep=currentStep;sc.board=deepCopy(boardActions)}
+function saveState(){
+ try{
+  commitActiveScreen();
+  localStorage.setItem('teaching_os_v020_screens_'+lessonKey,JSON.stringify({screens,activeScreenId,liveScreenId}));
+  localStorage.setItem('teaching_os_v0151_'+lessonKey,JSON.stringify(items));
+  localStorage.setItem('teaching_os_v020_notes_'+lessonKey,studyNotes?.value||'');
+  showSaveStatus('保存しました');
+  return true;
+ }catch(e){
+  console.error('Teaching OS save failed',e);
+  showSaveStatus('保存できませんでした。写真や教材が多すぎる可能性があります。',true);
+  return false;
+ }
+}
+function restoreState(){try{const ns=localStorage.getItem('teaching_os_v020_screens_'+lessonKey);if(ns){const data=JSON.parse(ns);screens=data.screens||[];activeScreenId=data.activeScreenId||'A';liveScreenId=data.liveScreenId||'A';const sc=screens.find(x=>x.id===activeScreenId)||screens[0];if(sc){activeScreenId=sc.id;items=deepCopy(sc.items||[]);currentStep=sc.currentStep||0;boardActions=deepCopy(sc.board||[])}return}const old=localStorage.getItem('teaching_os_v0151_'+lessonKey)||localStorage.getItem('teaching_os_v015_'+lessonKey)||localStorage.getItem('teaching_os_v014_'+lessonKey)||localStorage.getItem('teaching_os_v013_'+lessonKey)||localStorage.getItem('teaching_os_v011_'+lessonKey)||localStorage.getItem('teaching_os_v09_'+lessonKey)||localStorage.getItem('teaching_os_v08_'+lessonKey);if(old)items=JSON.parse(old);screens=[{id:'A',name:'Screen A',items:deepCopy(items),currentStep:currentStep,board:[]}];activeScreenId='A';liveScreenId='A'}catch(e){screens=[{id:'A',name:'Screen A',items:deepCopy(items),currentStep:0,board:[]}];activeScreenId='A';liveScreenId='A'}}
+function toggleSilent(){silent=!silent;stage.classList.toggle('silent',silent);silentBtn.textContent=silent?'Silent Mode解除':'Silent Mode'}
+function toggleFullscreen(){if(document.body.classList.contains('fullscreen')){document.body.classList.remove('fullscreen');document.exitFullscreen?.().catch(()=>{})}else{document.body.classList.add('fullscreen');document.documentElement.requestFullscreen?.().catch(()=>{})}requestAnimationFrame(fitStage)}
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)document.body.classList.remove('fullscreen');requestAnimationFrame(fitStage)});
+function studentWindowDocument(){return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>${document.querySelector('style').textContent}html,body{margin:0;background:#000;overflow:hidden}#vp{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}#ps{position:absolute;width:1280px;height:720px;overflow:hidden;background:var(--paper);color:var(--ink);transform-origin:center}</style></head><body><div id="vp"><div id="ps"></div><div id="remotePointer" style="display:none;position:absolute;width:22px;height:22px;border:3px solid #ef4444;border-radius:50%;transform:translate(-50%,-50%);z-index:99999;pointer-events:none"></div><div id="remoteStick" style="display:none;position:absolute;width:160px;height:4px;background:#ef4444;z-index:99999;pointer-events:none"></div></div><script>function fit(){const s=Math.min(innerWidth/1280,innerHeight/720);ps.style.transform='scale('+s+')'}addEventListener('resize',fit);addEventListener('keydown',e=>{if(['ArrowRight',' ','Enter'].includes(e.key))opener.postMessage({source:'student',command:'next'},'*');if(e.key==='ArrowLeft')opener.postMessage({source:'student',command:'prev'},'*');if(e.key==='Escape')opener.postMessage({source:'student',command:'focus'},'*')});addEventListener('message',e=>{if(e.data?.source==='teacher'){ps.innerHTML=e.data.html;ps.animate([{opacity:.35},{opacity:1}],{duration:320,easing:'ease-out'});document.documentElement.style.setProperty('--paper',e.data.paper);document.documentElement.style.setProperty('--ink',e.data.ink)}if(e.data?.source==='teacher-pointer'){const s=Math.min(innerWidth/1280,innerHeight/720),ox=(innerWidth-1280*s)/2,oy=(innerHeight-720*s)/2;const el=e.data.kind==='stick'?remoteStick:remotePointer;remotePointer.style.display='none';remoteStick.style.display='none';if(e.data.visible){el.style.display='block';el.style.left=(ox+e.data.x*s)+'px';el.style.top=(oy+e.data.y*s)+'px';if(e.data.kind==='stick'){el.style.width=(160*s)+'px';el.style.height=Math.max(2,4*s)+'px';el.style.transform='translate(-100%,-50%)'}}}});fit();opener.postMessage({source:'student',command:'ready'},'*');<\/script></body></html>`}
+function openStudentWindow(){if(studentWindow&&!studentWindow.closed){studentWindow.focus();syncStudentWindow();return}studentWindow=window.open('','TeachingOSStudent','popup=yes,width=1280,height=720');if(!studentWindow){alert('ポップアップを許可してください。');return}studentWindow.document.write(studentWindowDocument());studentWindow.document.close();setTimeout(syncStudentWindow,150)}
+function sanitizeStageHTML(){const clone=stage.cloneNode(true);clone.querySelectorAll('.selected').forEach(x=>x.classList.remove('selected'));clone.querySelectorAll('.resize-handle,.move-grip').forEach(x=>x.remove());clone.querySelector('.silent-cover')?.remove();clone.querySelector('.tap-hint')?.remove();return clone.innerHTML}
+function refreshLiveSnapshot(force=true){if(activeScreenId!==liveScreenId&&!force)return;if(liveFrozen&&!force)return;liveSnapshotHTML=sanitizeStageHTML();syncStudentWindow()}
+function syncStudentWindow(){const on=studentWindow&&!studentWindow.closed;windowStatus.textContent=on?'別ウィンドウ：接続中':'別ウィンドウ：未接続';windowStatus.classList.toggle('on',!!on);if(!on)return;if(!liveSnapshotHTML)liveSnapshotHTML=sanitizeStageHTML();const html=blackout?'<div style="position:absolute;inset:0;background:#000"></div>':liveSnapshotHTML;studentWindow.postMessage({source:'teacher',html,paper:getComputedStyle(document.documentElement).getPropertyValue('--paper'),ink:getComputedStyle(document.documentElement).getPropertyValue('--ink')},'*')}
+addEventListener('message',e=>{if(e.data?.source!=='student')return;if(e.data.command==='next')next();if(e.data.command==='prev')prev();if(e.data.command==='focus')focus();if(e.data.command==='ready')syncStudentWindow()});
+
+// ----- v0.20 Student Screens / Cockpit / Board -----
+function ensureScreens(){if(!screens.length)screens=[{id:'A',name:'Screen A',items:deepCopy(items),currentStep,board:[]}];if(!screens.some(x=>x.id===activeScreenId))activeScreenId=screens[0].id;if(!screens.some(x=>x.id===liveScreenId))liveScreenId=screens[0].id}
+function switchScreen(id){if(id===activeScreenId)return;commitActiveScreen();const sc=screens.find(x=>x.id===id);if(!sc)return;activeScreenId=id;items=deepCopy(sc.items||[]);currentStep=sc.currentStep||0;boardActions=deepCopy(sc.board||[]);selectedId=null;spotlightId=null;renderAll();saveState()}
+function addStudentScreen(fromCurrent=false){commitActiveScreen();const id=screenLetters.find(x=>!screens.some(s=>s.id===x))||('S'+(screens.length+1));const sc={id,name:'Screen '+id,items:fromCurrent?deepCopy(items):[],currentStep:0,board:[]};screens.push(sc);switchScreen(id);renderScreenStrip();saveState();return sc}
+function renderScreenStrip(){if(!window.screenStrip)return;screenStrip.innerHTML='';ensureScreens();screens.forEach(sc=>{const b=document.createElement('button');b.className='screen-chip'+(sc.id===activeScreenId?' active':'')+(sc.id===liveScreenId?' live':'');b.textContent=sc.id;b.title=sc.name+(sc.id===liveScreenId?'（現在投影）':'');b.addEventListener('click',()=>switchScreen(sc.id));screenStrip.appendChild(b)});liveStateText.textContent='LIVE '+liveScreenId+(liveFrozen?' · FROZEN':'');liveStateText.className=liveFrozen?'preview-indicator':'live-indicator';if(window.editStateText)editStateText.textContent='EDIT '+activeScreenId+(activeScreenId===liveScreenId?' · LIVE':' · PREVIEW')}
+function takeLive(){commitActiveScreen();const oldLive=liveScreenId;if(oldLive&&oldLive!==activeScreenId)liveHistory.push(oldLive);liveScreenId=activeScreenId;liveFrozen=false;blackout=false;liveSnapshotHTML=sanitizeStageHTML();renderScreenStrip();syncStudentWindow();saveState();transitionScreenAudio(oldLive,liveScreenId)}
+function toggleFreeze(){liveFrozen=!liveFrozen;if(!liveFrozen&&activeScreenId===liveScreenId)liveSnapshotHTML=sanitizeStageHTML();freezeBtn.textContent=liveFrozen?'RELEASE':'FREEZE';renderScreenStrip();syncStudentWindow()}
+function toggleBlack(){blackout=!blackout;blackBtn.textContent=blackout?'SHOW':'BLACK';syncStudentWindow()}
+function setBoardTool(tool){boardTool=tool;document.querySelectorAll('.cockpit-tool').forEach(b=>b.classList.toggle('mode-on',b.dataset.tool===tool));boardSvg.classList.toggle('draw-active',['pen','circle','arrow'].includes(tool));stage.style.cursor=tool==='pointer'?'crosshair':tool==='stick'?'crosshair':tool==='text'?'text':''}
+function boardPoint(e){const r=stage.getBoundingClientRect(),scaleX=DESIGN_W/r.width,scaleY=DESIGN_H/r.height;return {x:(e.clientX-r.left)*scaleX,y:(e.clientY-r.top)*scaleY}}
+function redrawBoard(){boardSvg.innerHTML='';boardActions.forEach(a=>{let el;if(a.type==='path'){el=document.createElementNS('http://www.w3.org/2000/svg','path');el.setAttribute('d',a.d);el.setAttribute('fill','none');el.setAttribute('stroke',a.color||'#e8452c');el.setAttribute('stroke-width',a.width||5);el.setAttribute('stroke-linecap','round');el.setAttribute('stroke-linejoin','round')}if(a.type==='circle'){el=document.createElementNS('http://www.w3.org/2000/svg','ellipse');el.setAttribute('cx',(a.x1+a.x2)/2);el.setAttribute('cy',(a.y1+a.y2)/2);el.setAttribute('rx',Math.abs(a.x2-a.x1)/2);el.setAttribute('ry',Math.abs(a.y2-a.y1)/2);el.setAttribute('fill','none');el.setAttribute('stroke','#e8452c');el.setAttribute('stroke-width','5')}if(a.type==='arrow'){el=document.createElementNS('http://www.w3.org/2000/svg','line');el.setAttribute('x1',a.x1);el.setAttribute('y1',a.y1);el.setAttribute('x2',a.x2);el.setAttribute('y2',a.y2);el.setAttribute('stroke','#e8452c');el.setAttribute('stroke-width','5');el.setAttribute('marker-end','url(#boardArrow)')}if(a.type==='text'){el=document.createElementNS('http://www.w3.org/2000/svg','text');el.setAttribute('x',a.x);el.setAttribute('y',a.y);el.setAttribute('fill','#172033');el.setAttribute('font-size','34');el.setAttribute('font-weight','700');el.textContent=a.text}if(el)boardSvg.appendChild(el)});if(boardActions.some(a=>a.type==='arrow')){const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');defs.innerHTML='<marker id="boardArrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto"><path d="M0,0 L0,8 L10,4 z" fill="#e8452c"/></marker>';boardSvg.prepend(defs)}}
+function restoreBoardForActiveScreen(){redrawBoard()}
+function smoothStrokePoints(points){const mode=penStability?.value||'mid';const windowSize=mode==='high'?5:mode==='mid'?3:1;if(windowSize<=1)return points;const filtered=[];for(const p of points){const last=filtered[filtered.length-1];if(!last||Math.hypot(p.x-last.x,p.y-last.y)>1.7)filtered.push(p)}return filtered.map((p,i)=>{const a=Math.max(0,i-windowSize+1),chunk=filtered.slice(a,i+1);return{x:chunk.reduce((n,q)=>n+q.x,0)/chunk.length,y:chunk.reduce((n,q)=>n+q.y,0)/chunk.length}})}
+function strokePath(points){const ps=smoothStrokePoints(points);if(!ps.length)return'';return 'M '+ps.map(q=>q.x.toFixed(1)+' '+q.y.toFixed(1)).join(' L ')}
+boardSvg.addEventListener('pointerdown',e=>{if(!['pen','circle','arrow'].includes(boardTool))return;e.preventDefault();const p=boardPoint(e);boardDrawing={type:boardTool,x1:p.x,y1:p.y,x2:p.x,y2:p.y,points:[p]};boardSvg.setPointerCapture(e.pointerId)});
+boardSvg.addEventListener('pointermove',e=>{if(!boardDrawing)return;const p=boardPoint(e);boardDrawing.x2=p.x;boardDrawing.y2=p.y;boardDrawing.points.push(p);const preview=boardActions.concat(boardDrawing.type==='pen'?[{type:'path',d:strokePath(boardDrawing.points)}]:[boardDrawing]);const old=boardActions;boardActions=preview;redrawBoard();boardActions=old});
+boardSvg.addEventListener('pointerup',e=>{if(!boardDrawing)return;if(boardDrawing.type==='pen')boardActions.push({type:'path',d:strokePath(boardDrawing.points)});else boardActions.push(boardDrawing);boardDrawing=null;redrawBoard();saveState();if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)});
+stage.addEventListener('pointermove',e=>{if(!['pointer','stick'].includes(boardTool))return;const p=boardPoint(e);if(boardTool==='pointer'){livePointer.style.display='block';livePointer.style.left=p.x+'px';livePointer.style.top=p.y+'px';livePointer.style.opacity='1';sendLivePointer('pointer',p.x,p.y,true);clearTimeout(pointerTimer);pointerTimer=setTimeout(()=>{livePointer.style.opacity='0';sendLivePointer('pointer',p.x,p.y,false)},500)}else{stickPointer.style.display='block';stickPointer.style.left=Math.max(20,p.x-165)+'px';stickPointer.style.top=p.y+'px';sendLivePointer('stick',p.x,p.y,true)}});
+stage.addEventListener('pointerleave',()=>{if(boardTool==='pointer'){livePointer.style.opacity='0';sendLivePointer('pointer',0,0,false)}if(boardTool==='stick'){stickPointer.style.display='none';sendLivePointer('stick',0,0,false)}});
+stage.addEventListener('pointerleave',()=>{livePointer.style.display='none';stickPointer.style.display='none'});
+stage.addEventListener('click',e=>{if(boardTool!=='text')return;if(e.target.closest('.item'))return;const p=boardPoint(e);const text=prompt('黒板に表示する文字');if(text){boardActions.push({type:'text',x:p.x,y:p.y,text});redrawBoard();saveState();if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)}});
+function boardUndo(){boardActions.pop();redrawBoard();saveState();if(activeScreenId===liveScreenId&&!liveFrozen)refreshLiveSnapshot(false)}
+function boardClear(){if(!boardActions.length)return;const prev=deepCopy(boardActions);boardActions=[];redrawBoard();saveState();boardClearBtn.textContent='UNDO CLEAR';setTimeout(()=>{if(boardClearBtn.textContent==='UNDO CLEAR')boardClearBtn.textContent='Clear Board'},3500);boardClearBtn.onclick=()=>{boardActions=prev;redrawBoard();saveState();boardClearBtn.textContent='Clear Board';boardClearBtn.onclick=boardClear}}
+function selectedNotesText(){const el=studyNotes;const a=el.selectionStart??0,b=el.selectionEnd??0;return (a!==b?el.value.slice(a,b):el.value).trim()}
+function notesToScreen(){const t=selectedNotesText();if(!t)return;const it={id:'item_'+Date.now(),type:'text',text:t,x:100,y:120,w:960,h:180,size:34,step:currentStep,z:++zCounter,motion:'fade'};items.push(it);selectedId=it.id;renderAll();saveState()}
+function notesToPresenter(){const t=selectedNotesText();if(!t)return;teacherScriptInput.value+=(teacherScriptInput.value?'\n\n':'')+'🎤 '+t;saveTeacherScript()}
+async function attachAudio(){const f=audioInput.files[0];if(!f){alert('MP3/音声ファイルを選んでください。');return}const sc=activeScreen();if(!sc)return;sc.audioName=f.name;sc.audioMediaId=await storeMediaBlob(f,f.name);sc.audioUrl=await getMediaURL(sc.audioMediaId);audioStatus.textContent='Audio: '+f.name+'（Screen '+sc.id+'）';saveState()}
+function clearAudioTimers(){for(const t of audioTimers)clearInterval(t);audioTimers.clear()}
+function fadeAudioElement(a,duration=1000,stop=true){
+ if(!a)return null;const start=Math.max(0,Math.min(1,a.volume)),steps=20,dt=Math.max(16,duration/steps);let i=0;
+ const timer=setInterval(()=>{i++;a.volume=Math.max(0,start*(1-i/steps));if(i>=steps){clearInterval(timer);audioTimers.delete(timer);if(stop){a.pause();try{a.currentTime=0}catch(e){}}}},dt);
+ audioTimers.add(timer);return timer;
+}
+function transitionScreenAudio(oldId,newId){
+ clearAudioTimers();
+ const oldAudio=screenAudio;
+ if(oldAudio)fadeAudioElement(oldAudio,850,true);
+ const sc=screens.find(x=>x.id===newId);
+ if(!sc?.audioUrl){screenAudio=null;audioStatus.textContent='Audio: なし';return}
+ const nextAudio=new Audio(sc.audioUrl);nextAudio.volume=0;nextAudio.play().catch(()=>{});screenAudio=nextAudio;
+ let i=0;const target=.08,steps=18;
+ const timer=setInterval(()=>{if(screenAudio!==nextAudio){clearInterval(timer);audioTimers.delete(timer);return}i++;nextAudio.volume=Math.min(target,target*i/steps);if(i>=steps){clearInterval(timer);audioTimers.delete(timer)}},45);
+ audioTimers.add(timer);audioStatus.textContent='Audio: '+sc.audioName+' · crossfade / very low';
+}
+function playScreenAudio(){transitionScreenAudio(liveScreenId,liveScreenId)}
+function toggleAudio(){if(!screenAudio){playScreenAudio();return}if(screenAudio.paused)screenAudio.play().catch(()=>{});else screenAudio.pause()}
+function fadeAudio(){if(!screenAudio)return;clearAudioTimers();fadeAudioElement(screenAudio,1000,true)}
+async function startCamera(){try{cameraStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false});cameraPreview.srcObject=cameraStream;cameraPreview.classList.remove('hidden')}catch(e){alert('Cameraを開始できません。HTTPS/localhostまたはカメラ許可が必要な場合があります。')}}
+async function captureCamera(){
+ if(!cameraStream||!cameraPreview.videoWidth){alert('先にCameraを開始してください。');return}
+ const c=document.createElement('canvas');c.width=cameraPreview.videoWidth;c.height=cameraPreview.videoHeight;c.getContext('2d').drawImage(cameraPreview,0,0);
+ const blob=await new Promise(resolve=>c.toBlob(resolve,'image/jpeg',.88));
+ if(!blob){showSaveStatus('写真を作成できませんでした。',true);return}
+ try{
+  const mediaId=await storeMediaBlob(blob,'camera_'+Date.now()+'.jpg');
+  const url=await getMediaURL(mediaId);
+  addStudentScreen(false);
+  items=[{id:'item_'+Date.now(),type:'image',src:url,mediaId,caption:'Camera capture',x:80,y:60,w:1120,h:600,step:0,z:1,motion:'fade'}];
+  currentStep=0;commitActiveScreen();renderAll();saveState();showSaveStatus('写真を保存しました');
+ }catch(e){console.error(e);showSaveStatus('写真を保存できませんでした。',true)}
+}
+async function addSource(){const f=sourceInput.files[0];if(!f){alert('Sourceファイルを選んでください。');return}const title=(sourceTitle.value||f.name).trim(),edition=sourceEdition.value.trim();let type=f.type==='application/pdf'?'pdf':f.type.startsWith('video/')?'video':'image';let url='',mediaId=null;if(type==='image'){url=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(f)})}else{mediaId=await storeMediaBlob(f,f.name);url=await getMediaURL(mediaId)}const it={id:'item_'+Date.now(),type,src:url,mediaId,caption:title+(edition?' · '+edition:''),sourceMeta:{title,edition,originalName:f.name},x:80,y:70,w:type==='pdf'?1120:760,h:type==='pdf'?580:430,step:currentStep,z:++zCounter,motion:'fade'};items.push(it);selectedId=it.id;renderAll();saveState()}
+function addRevealMask(){const it={id:'item_'+Date.now(),type:'mask',caption:'Reveal Mask',x:280,y:250,w:520,h:150,step:currentStep,exitStep:currentStep+2,z:++zCounter,motion:'fade',color:getComputedStyle(document.documentElement).getPropertyValue('--paper').trim()||'#f8f7f2'};items.push(it);selectedId=it.id;renderAll();saveState()}
+function addTeacherBookmark(){const label=prompt('この場面のメモ','ここを次回も使う');if(label===null)return;let data=[];try{data=JSON.parse(localStorage.getItem('teaching_os_v020_bookmarks_'+lessonKey)||'[]')}catch(e){}data.push({time:new Date().toISOString(),screen:activeScreenId,step:currentStep+1,label});localStorage.setItem('teaching_os_v020_bookmarks_'+lessonKey,JSON.stringify(data));bookmarkStatus.textContent=`★ Screen ${activeScreenId} / Step ${currentStep+1}：${label}`}
+function backLive(){const id=liveHistory.pop();if(!id)return;const sc=screens.find(x=>x.id===id);if(!sc)return;const currentActive=activeScreenId;if(currentActive!==id)switchScreen(id);takeLive();if(currentActive!==id&&screens.some(x=>x.id===currentActive))switchScreen(currentActive)}
+function resizeTeacherStart(e){if(innerWidth<900)return;e.preventDefault();const startX=e.clientX;const start=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--teacher-w'))||420;const move=ev=>{const w=Math.max(300,Math.min(innerWidth*.68,start+(ev.clientX-startX)));document.documentElement.style.setProperty('--teacher-w',w+'px');fitStage()};const up=()=>{removeEventListener('pointermove',move);removeEventListener('pointerup',up)};addEventListener('pointermove',move);addEventListener('pointerup',up)}
+function resizeCockpitStart(e){e.preventDefault();const startY=e.clientY;const start=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cockpit-h'))||210;const move=ev=>{const h=Math.max(120,Math.min(420,start-(ev.clientY-startY)));document.documentElement.style.setProperty('--cockpit-h',h+'px');fitStage()};const up=()=>{removeEventListener('pointermove',move);removeEventListener('pointerup',up)};addEventListener('pointermove',move);addEventListener('pointerup',up)}
+function toggleOverview(){let pane=document.getElementById('screenOverviewPane');if(pane){pane.remove();return}pane=document.createElement('div');pane.id='screenOverviewPane';pane.style.cssText='position:absolute;inset:18px;z-index:200;background:#0d1421ee;border:1px solid #4a5a7d;border-radius:14px;padding:14px;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px';screens.forEach(sc=>{const card=document.createElement('button');card.className='btn';card.style.cssText='aspect-ratio:16/9;text-align:left;display:flex;flex-direction:column;justify-content:space-between;padding:12px';card.innerHTML='<strong>Screen '+sc.id+(sc.id===liveScreenId?' · LIVE':'')+'</strong><span style="font-size:12px;color:#b9c4d9">'+(sc.items?.length||0)+' objects · Step '+((sc.currentStep||0)+1)+'</span>';card.onclick=()=>{pane.remove();switchScreen(sc.id)};pane.appendChild(card)});canvasViewport.appendChild(pane)}
+function toggleFocusMode(){document.body.classList.toggle('focus-mode');requestAnimationFrame(fitStage)}
+
+applyPropertiesBtn.onclick=applySelectedProperties;propContent.addEventListener('focus',()=>{const it=items.find(x=>x.id===selectedId);if(it&&it.type==='text'&&propContent.value!==it.text)propContent.value=it.text});addTextBtn.onclick=addText;addImageBtn.onclick=addImage;addLatexBtn.onclick=addLatex;updateTextBtn.onclick=updateSelectedText;updateLatexBtn.onclick=updateSelectedLatex;nextBtn.onclick=next;prevBtn.onclick=prev;resetBtn.onclick=()=>{currentStep=0;renderAll()};lessonSelect.onchange=e=>{commitActiveScreen();lessonKey=e.target.value;currentStep=0;items=clonePreset(lessonKey);screens=[];activeScreenId='A';liveScreenId='A';boardActions=[];restoreState();restoreTeacherScript();try{studyNotes.value=localStorage.getItem('teaching_os_v020_notes_'+lessonKey)||''}catch(e){}selectedId=null;renderAll();hydrateMediaRefs();setTimeout(()=>{liveSnapshotHTML=sanitizeStageHTML();syncStudentWindow()},0)};fullscreenBtn.onclick=toggleFullscreen;studentWindowBtn.onclick=openStudentWindow;silentBtn.onclick=toggleSilent;moveUpBtn.onclick=()=>nudgeSelected(0,-1);moveDownBtn.onclick=()=>nudgeSelected(0,1);moveLeftBtn.onclick=()=>nudgeSelected(-1,0);moveRightBtn.onclick=()=>nudgeSelected(1,0);moveCenterBtn.onclick=centerSelected;earlierBtn.onclick=()=>changeStep(-1);laterBtn.onclick=()=>changeStep(1);smallerBtn.onclick=()=>resizeSelected(.9);largerBtn.onclick=()=>resizeSelected(1.1);deleteBtn.onclick=()=>{if(!selectedId)return;items=items.filter(x=>x.id!==selectedId);if(spotlightId===selectedId)spotlightId=null;selectedId=null;renderAll();saveState()};frontBtn.onclick=()=>{const it=items.find(x=>x.id===selectedId);if(it){it.z=++zCounter;renderAll();saveState()}};backBtn.onclick=()=>{const it=items.find(x=>x.id===selectedId);if(it){it.z=0;renderAll();saveState()}};fontSelect.onchange=e=>{slide.style.fontFamily=e.target.value;syncStudentWindow()};textColor.oninput=e=>{document.documentElement.style.setProperty('--ink',e.target.value);refreshColorPalettes();syncStudentWindow()};bgColor.oninput=e=>{document.documentElement.style.setProperty('--paper',e.target.value);refreshColorPalettes();syncStudentWindow()};propColor.oninput=()=>refreshColorPalettes();
+
+
+addSourceBtn.onclick=addSource;addMaskBtn.onclick=addRevealMask;bookmarkBtn.onclick=addTeacherBookmark;liveBackBtn.onclick=backLive;addVideoBtn.onclick=addVideo;attachAudioBtn.onclick=attachAudio;audioPlayBtn.onclick=toggleAudio;audioFadeBtn.onclick=fadeAudio;cameraStartBtn.onclick=startCamera;cameraCaptureBtn.onclick=captureCamera;notesToScreenBtn.onclick=notesToScreen;notesToPresenterBtn.onclick=notesToPresenter;addScreenBtn.onclick=()=>addStudentScreen(false);duplicateScreenBtn.onclick=()=>addStudentScreen(true);takeLiveBtn.onclick=takeLive;overviewBtn.onclick=toggleOverview;focusModeBtn.onclick=toggleFocusMode;cockpitPrevBtn.onclick=prev;cockpitNextBtn.onclick=next;freezeBtn.onclick=toggleFreeze;blackBtn.onclick=toggleBlack;boardUndoBtn.onclick=boardUndo;boardClearBtn.onclick=boardClear;document.querySelectorAll('.cockpit-tool').forEach(b=>b.addEventListener('click',()=>setBoardTool(b.dataset.tool)));cockpitResizer.addEventListener('pointerdown',resizeCockpitStart);teacherResizer.addEventListener('pointerdown',resizeTeacherStart);
+presenterModeBtn.onclick=togglePresenterMode;
+modeEditBtn.onclick=()=>setPresentationMode(false);
+modePresentBtn.onclick=()=>setPresentationMode(true);
+presenterPrevBtn.onclick=prev;
+presenterNextBtn.onclick=next;
+document.querySelectorAll('.cue-btn').forEach(btn=>btn.addEventListener('click',()=>insertCue(btn.dataset.cue||'')));
+
+teacherScriptInput.addEventListener('input',saveTeacherScript);studyNotes.addEventListener('input',saveState);
+insertCurrentBuildStepBtn.onclick=()=>insertScriptStep(currentStep+1);
+insertNextBuildStepBtn.onclick=()=>insertScriptStep(Math.min(maxStep()+1,currentStep+2));
+clearTeacherScriptBtn.onclick=()=>{
+  if(!teacherScriptInput.value.trim()||confirm('この授業のTeaching Flowを消去しますか？')){
+    teacherScriptInput.value='';
+    saveTeacherScript();
+  }
+};
+fxHighlightBtn.onclick=()=>toggleObjectEffect('highlight');fxCircleBtn.onclick=()=>toggleObjectEffect('circle');fxUnderlineBtn.onclick=()=>toggleObjectEffect('underline');fxArrowBtn.onclick=()=>toggleObjectEffect('arrow');fxSpotlightBtn.onclick=()=>toggleObjectEffect('spotlight');fxFlashBtn.onclick=triggerFlashEffect;fxClearBtn.onclick=clearObjectEffects;
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if(selectedId&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){e.preventDefault();const d=e.shiftKey?10:1;if(e.key==='ArrowUp')nudgeSelected(0,-d);if(e.key==='ArrowDown')nudgeSelected(0,d);if(e.key==='ArrowLeft')nudgeSelected(-d,0);if(e.key==='ArrowRight')nudgeSelected(d,0);return}if(['ArrowRight',' ','Enter'].includes(e.key)){e.preventDefault();next()}if(e.key==='ArrowLeft')prev();if(e.key==='Escape'){document.body.classList.remove('fullscreen');focus()}if(e.key.toLowerCase()==='f')toggleFullscreen();if(e.key.toLowerCase()==='s')toggleSilent();if((e.key==='Delete'||e.key==='Backspace')&&selectedId){items=items.filter(x=>x.id!==selectedId);if(spotlightId===selectedId)spotlightId=null;selectedId=null;renderAll();saveState()}});
+function bootTeachingOS(){
+ try{
+  items=clonePreset('fiber');restoreState();ensureScreens();restoreTeacherScript();
+  try{studyNotes.value=localStorage.getItem('teaching_os_v020_notes_'+lessonKey)||''}catch(e){}
+  renderAll();Promise.resolve(hydrateMediaRefs()).catch(e=>console.warn('Media restore skipped',e));
+  refreshColorPalettes();fitStage();setBoardTool('select');
+  setTimeout(()=>{try{liveSnapshotHTML=sanitizeStageHTML();renderScreenStrip();syncStudentWindow()}catch(e){console.warn(e)}},50);
+ }catch(e){
+  console.error('Teaching OS boot failed',e);
+  const box=document.createElement('div');box.style.cssText='position:fixed;inset:20px;z-index:999999;background:#111827;color:#fff;border:2px solid #ef4444;border-radius:16px;padding:20px;font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;overflow:auto';
+  const safe=String(e&&(e.stack||e.message)||e).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+  box.innerHTML='<h2 style="margin-top:0">Teaching OS 起動エラー</h2><p>黒画面の代わりに原因を表示しています。</p><pre style="white-space:pre-wrap">'+safe+'</pre>';document.body.appendChild(box);
+ }
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bootTeachingOS,{once:true});else bootTeachingOS();
+
+</script>
+</body></html>
