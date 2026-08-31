@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teaching-os-v0.30-shell-1';
+const CACHE_NAME = 'teaching-os-v0.32-shell-1';
 const APP_SHELL = [
   './',
   './index.html',
