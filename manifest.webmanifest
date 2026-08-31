@@ -1,0 +1,11 @@
+{
+  "name": "Teaching OS",
+  "short_name": "Teaching OS",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#101827",
+  "theme_color": "#172033",
+  "description": "Offline-first browser teaching and presentation workspace."
+}
