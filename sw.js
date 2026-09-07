@@ -1,24 +1,38 @@
-const CACHE_NAME = 'teaching-os-v0.32.1-ipad-hotfix-1';
+const CACHE_NAME = 'teaching-os-v0.32.2-physics-vector-1';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icon.svg',
-  './hotfix-v0321.js'
+  './hotfix-v0321.js',
+  './physics-vector-tools-v0322.js'
 ];
 
-function injectHotfix(html) {
-  const tag = '<script src="./hotfix-v0321.js"></script>';
-  if (html.includes('hotfix-v0321.js')) return html;
-  const firstScript = html.indexOf('<script>');
-  if (firstScript >= 0) {
-    return html.slice(0, firstScript) + tag + '\n' + html.slice(firstScript);
+function injectTools(html) {
+  const hotfixTag = '<script src="./hotfix-v0321.js"></script>';
+  const physicsTag = '<script src="./physics-vector-tools-v0322.js"></script>';
+
+  if (!html.includes('hotfix-v0321.js')) {
+    const firstScript = html.indexOf('<script>');
+    if (firstScript >= 0) {
+      html = html.slice(0, firstScript) + hotfixTag + '\n' + html.slice(firstScript);
+    } else {
+      html = html.replace('</head>', hotfixTag + '\n</head>');
+    }
   }
-  return html.replace('</head>', tag + '\n</head>');
+
+  if (!html.includes('physics-vector-tools-v0322.js')) {
+    if (html.includes('</body>')) {
+      html = html.replace('</body>', physicsTag + '\n</body>');
+    } else {
+      html += '\n' + physicsTag;
+    }
+  }
+  return html;
 }
 
 async function patchedNavigationResponse(request) {
   try {
     const network = await fetch(request, { cache: 'no-store' });
-    const html = injectHotfix(await network.text());
+    const html = injectTools(await network.text());
     const headers = new Headers(network.headers);
     headers.delete('content-length');
     headers.set('content-type', 'text/html; charset=utf-8');
