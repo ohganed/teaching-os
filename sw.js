@@ -1,10 +1,40 @@
-const CACHE_NAME = 'teaching-os-v0.32-shell-1';
+const CACHE_NAME = 'teaching-os-v0.32.1-ipad-hotfix-1';
 const APP_SHELL = [
-  './',
-  './index.html',
   './manifest.webmanifest',
-  './icon.svg'
+  './icon.svg',
+  './hotfix-v0321.js'
 ];
+
+function injectHotfix(html) {
+  const tag = '<script src="./hotfix-v0321.js"></script>';
+  if (html.includes('hotfix-v0321.js')) return html;
+  const firstScript = html.indexOf('<script>');
+  if (firstScript >= 0) {
+    return html.slice(0, firstScript) + tag + '\n' + html.slice(firstScript);
+  }
+  return html.replace('</head>', tag + '\n</head>');
+}
+
+async function patchedNavigationResponse(request) {
+  try {
+    const network = await fetch(request, { cache: 'no-store' });
+    const html = injectHotfix(await network.text());
+    const headers = new Headers(network.headers);
+    headers.delete('content-length');
+    headers.set('content-type', 'text/html; charset=utf-8');
+    const patched = new Response(html, {
+      status: network.status,
+      statusText: network.statusText,
+      headers
+    });
+    const cache = await caches.open(CACHE_NAME);
+    await cache.put('./index.html', patched.clone());
+    return patched;
+  } catch (error) {
+    const cache = await caches.open(CACHE_NAME);
+    return (await cache.match('./index.html')) || (await cache.match('./')) || Response.error();
+  }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -14,12 +44,18 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => Promise.all(
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
       keys.filter((key) => key.startsWith('teaching-os-') && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
-    )).then(() => self.clients.claim())
-  );
+    );
+    await self.clients.claim();
+    const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clients) {
+      try { await client.navigate(client.url); } catch (e) {}
+    }
+  })());
 });
 
 self.addEventListener('fetch', (event) => {
@@ -30,15 +66,7 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html').then((cached) => cached || caches.match('./')))
-    );
+    event.respondWith(patchedNavigationResponse(request));
     return;
   }
 
