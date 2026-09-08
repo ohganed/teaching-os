@@ -1,14 +1,16 @@
-const CACHE_NAME = 'teaching-os-v0.32.2-physics-vector-1';
+const CACHE_NAME = 'teaching-os-v0.32.3-physics-rotation-1';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icon.svg',
   './hotfix-v0321.js',
-  './physics-vector-tools-v0322.js'
+  './physics-vector-tools-v0322.js',
+  './physics-rotation-v0323.js'
 ];
 
 function injectTools(html) {
   const hotfixTag = '<script src="./hotfix-v0321.js"></script>';
   const physicsTag = '<script src="./physics-vector-tools-v0322.js"></script>';
+  const rotationTag = '<script src="./physics-rotation-v0323.js"></script>';
 
   if (!html.includes('hotfix-v0321.js')) {
     const firstScript = html.indexOf('<script>');
@@ -20,11 +22,13 @@ function injectTools(html) {
   }
 
   if (!html.includes('physics-vector-tools-v0322.js')) {
-    if (html.includes('</body>')) {
-      html = html.replace('</body>', physicsTag + '\n</body>');
-    } else {
-      html += '\n' + physicsTag;
-    }
+    if (html.includes('</body>')) html = html.replace('</body>', physicsTag + '\n</body>');
+    else html += '\n' + physicsTag;
+  }
+
+  if (!html.includes('physics-rotation-v0323.js')) {
+    if (html.includes('</body>')) html = html.replace('</body>', rotationTag + '\n</body>');
+    else html += '\n' + rotationTag;
   }
   return html;
 }
@@ -51,19 +55,14 @@ async function patchedNavigationResponse(request) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(
-      keys.filter((key) => key.startsWith('teaching-os-') && key !== CACHE_NAME)
-          .map((key) => caches.delete(key))
-    );
+    await Promise.all(keys.filter((key) => key.startsWith('teaching-os-') && key !== CACHE_NAME).map((key) => caches.delete(key)));
     await self.clients.claim();
     const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of clients) {
@@ -75,7 +74,6 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
@@ -84,16 +82,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      });
-    })
-  );
+  event.respondWith(caches.match(request).then((cached) => {
+    if (cached) return cached;
+    return fetch(request).then((response) => {
+      if (response && response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+      }
+      return response;
+    });
+  }));
 });
