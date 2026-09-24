@@ -52,6 +52,140 @@
     };
   }
 
+
+  // -----------------------------
+  // 1b. Reusable simulator models
+  // -----------------------------
+  function deriveKinematics({x0=0,v0=0,a=0,t=0}={}){
+    const tt=Math.max(0,Number(t)||0);
+    const xx0=Number(x0)||0, vv0=Number(v0)||0, aa=Number(a)||0;
+    const v=vv0+aa*tt;
+    const x=xx0+vv0*tt+0.5*aa*tt*tt;
+    return {
+      phenomenon:'1次元の等加速度運動',
+      givens:{x0:xx0,v0:vv0,a:aa,t:tt},
+      principle:'加速度一定。v=v0+at, x=x0+v0t+(1/2)at²',
+      quantities:{x,v,a:aa}
+    };
+  }
+
+  function verifyKinematics(model){
+    const {x0,v0,a,t}=model.givens;
+    const {x,v}=model.quantities;
+    const energyLike=v*v-(model.givens.v0*model.givens.v0);
+    const displacement=x-x0;
+    return [
+      makeCheck('kin-v','v=v0+at','constant acceleration','numeric equality',
+        nearlyEqual(v,v0+a*t)),
+      makeCheck('kin-x','x=x0+v0t+(1/2)at²','integrated constant acceleration','numeric equality',
+        nearlyEqual(x,x0+v0*t+0.5*a*t*t)),
+      makeCheck('kin-v2','v²-v0²=2aΔx','eliminate time','kinematic identity',
+        nearlyEqual(energyLike,2*a*displacement))
+    ];
+  }
+
+  function deriveProjectile({speed=20,angleDeg=45,height0=0,gravity=9.8,t=0}={}){
+    const v0=Math.max(0,Number(speed)||0);
+    const theta=degToRad(clamp(Number(angleDeg)||0,-89,89));
+    const y0=Number(height0)||0;
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const tt=Math.max(0,Number(t)||0);
+    const vx=v0*Math.cos(theta);
+    const vy0=v0*Math.sin(theta);
+    const x=vx*tt;
+    const y=y0+vy0*tt-0.5*g*tt*tt;
+    const vy=vy0-g*tt;
+    const disc=Math.max(0,vy0*vy0+2*g*Math.max(0,y0));
+    const flightTime=(vy0+Math.sqrt(disc))/g;
+    return {
+      phenomenon:'空気抵抗を無視した投射運動',
+      givens:{speed:v0,angleDeg:Number(angleDeg)||0,height0:y0,gravity:g,t:tt},
+      principle:'水平は等速、鉛直は加速度 -g',
+      quantities:{x,y,vx,vy,flightTime}
+    };
+  }
+
+  function verifyProjectile(model){
+    const {speed,angleDeg,height0,gravity,t}=model.givens;
+    const th=degToRad(angleDeg);
+    const {x,y,vx,vy}=model.quantities;
+    return [
+      makeCheck('proj-vx','vx is constant','no horizontal acceleration','numeric equality',
+        nearlyEqual(vx,speed*Math.cos(th))),
+      makeCheck('proj-x','x=vx t','horizontal uniform motion','numeric equality',
+        nearlyEqual(x,vx*t)),
+      makeCheck('proj-y','y=y0+vy0t-(1/2)gt²','vertical constant acceleration','numeric equality',
+        nearlyEqual(y,height0+speed*Math.sin(th)*t-0.5*gravity*t*t)),
+      makeCheck('proj-vy','vy=vy0-gt','vertical constant acceleration','numeric equality',
+        nearlyEqual(vy,speed*Math.sin(th)-gravity*t))
+    ];
+  }
+
+  function deriveSpring({massKg=1,springConstant=10,amplitude=0.2,phase=0,t=0}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const k=Math.max(0.0001,Number(springConstant)||10);
+    const A=Math.max(0,Number(amplitude)||0);
+    const phi=Number(phase)||0;
+    const tt=Math.max(0,Number(t)||0);
+    const omega=Math.sqrt(k/m);
+    const x=A*Math.cos(omega*tt+phi);
+    const v=-A*omega*Math.sin(omega*tt+phi);
+    const a=-omega*omega*x;
+    const period=2*Math.PI/omega;
+    const totalEnergy=0.5*k*A*A;
+    return {
+      phenomenon:'摩擦を無視した水平ばね振動',
+      givens:{massKg:m,springConstant:k,amplitude:A,phase:phi,t:tt},
+      principle:'F=-kx, ma=-kx → a=-(k/m)x',
+      quantities:{omega,period,x,v,a,totalEnergy}
+    };
+  }
+
+  function verifySpring(model){
+    const {massKg:m,springConstant:k,amplitude:A}=model.givens;
+    const {omega,period,x,a,totalEnergy}=model.quantities;
+    return [
+      makeCheck('sho-omega','ω²=k/m','equation of motion','numeric equality',
+        nearlyEqual(omega*omega,k/m)),
+      makeCheck('sho-acc','a=-ω²x','SHM acceleration','numeric equality',
+        nearlyEqual(a,-omega*omega*x)),
+      makeCheck('sho-period','T=2π/ω','angular frequency definition','numeric equality',
+        nearlyEqual(period,2*Math.PI/omega)),
+      makeCheck('sho-energy','E=(1/2)kA²','ideal SHM energy','numeric equality',
+        nearlyEqual(totalEnergy,0.5*k*A*A))
+    ];
+  }
+
+  function deriveCircular({radius=1,speed=2,t=0}={}){
+    const r=Math.max(0.0001,Number(radius)||1);
+    const v=Math.max(0,Number(speed)||0);
+    const tt=Math.max(0,Number(t)||0);
+    const omega=v/r;
+    const theta=omega*tt;
+    const x=r*Math.cos(theta), y=r*Math.sin(theta);
+    const centripetalAcceleration=v*v/r;
+    const period=v>0?2*Math.PI*r/v:Infinity;
+    return {
+      phenomenon:'等速円運動',
+      givens:{radius:r,speed:v,t:tt},
+      principle:'速度の大きさ一定、方向が変化。向心加速度 a=v²/r',
+      quantities:{omega,theta,x,y,centripetalAcceleration,period}
+    };
+  }
+
+  function verifyCircular(model){
+    const {radius:r,speed:v}=model.givens;
+    const {omega,x,y,centripetalAcceleration}=model.quantities;
+    return [
+      makeCheck('circ-radius','x²+y²=r²','circular constraint','numeric equality',
+        nearlyEqual(x*x+y*y,r*r)),
+      makeCheck('circ-omega','ω=v/r','uniform circular motion','numeric equality',
+        nearlyEqual(omega,v/r)),
+      makeCheck('circ-ac','a_c=v²/r','centripetal acceleration','numeric equality',
+        nearlyEqual(centripetalAcceleration,v*v/r))
+    ];
+  }
+
   // -----------------------------
   // 2. Verification Layer
   // -----------------------------
@@ -235,10 +369,18 @@
   // -----------------------------
   const skills = {
     'physics-derivation': {
-      deriveInclineForces
+      deriveInclineForces,
+      deriveKinematics,
+      deriveProjectile,
+      deriveSpring,
+      deriveCircular
     },
     'physics-verification': {
       verifyInclineModel,
+      verifyKinematics,
+      verifyProjectile,
+      verifySpring,
+      verifyCircular,
       verificationSummary,
       registerVerificationAdapter,
       verifyWithAdapter
@@ -263,7 +405,15 @@
     version: VERSION,
     skills,
     deriveInclineForces,
+    deriveKinematics,
+    deriveProjectile,
+    deriveSpring,
+    deriveCircular,
     verifyInclineModel,
+    verifyKinematics,
+    verifyProjectile,
+    verifySpring,
+    verifyCircular,
     verificationSummary,
     inclineVisualizationSpec,
     buildInclineLessonDesign,
