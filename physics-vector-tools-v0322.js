@@ -273,6 +273,7 @@
     const it=items.find(x=>x.id===selectedId);
     if(!it || it.physicsKind!=='slope'){toastPhysics('角度を変える斜面を選択してください。',true);return;}
     const angle=clamp(+($('pvSlopeAngle')?.value||30),5,80);
+    const range=$('pvSlopeAngleRange'); if(range) range.value=angle;
     const old=$('physicsAngleInput'); if(old) old.value=angle;
     try{
       it.src=svgDataUrl(physicsSvg('slope'));
@@ -353,6 +354,27 @@
     toastPhysics('Physics Modelから mg / mg sinθ / mg cosθ を自動描画しました。');
   }
 
+
+  function refreshSelectedInclineFromControls({redrawVectors=true,quiet=true}={}){
+    const slope=items.find(x=>x.id===selectedId && x.physicsKind==='slope');
+    if(!slope) return false;
+    const angle=clamp(+($('pvSlopeAngle')?.value||slope.physicsAngle||30),5,80);
+    const old=$('physicsAngleInput'); if(old) old.value=angle;
+    try{
+      slope.src=svgDataUrl(physicsSvg('slope'));
+      slope.physicsAngle=angle;
+      removeAutoInclineVectors();
+      renderAll();saveState();
+      updateInclineSkillReadout(angle);
+      if(redrawVectors) addAutoInclineVectors();
+      if(!quiet) toastPhysics(`斜面 ${angle}° をPhysics Modelと同期しました。`);
+      return true;
+    }catch(e){
+      if(!quiet) toastPhysics('リアルタイム更新に失敗しました。',true);
+      return false;
+    }
+  }
+
   function toastPhysics(msg,error=false){
     const n=$('pvStatus'); if(!n)return;
     n.textContent=msg;n.style.color=error?'#ffb4b4':'#bfe0ff';
@@ -386,7 +408,10 @@
 
         <h2 style="margin-top:8px">斜面・重なり操作</h2>
         <div class="physics-inline">
-          <div class="field"><label>選択斜面の角度</label><input id="pvSlopeAngle" type="number" min="5" max="80" value="30"></div>
+          <div class="field"><label>選択斜面の角度</label>
+            <input id="pvSlopeAngleRange" type="range" min="5" max="80" step="1" value="30">
+            <input id="pvSlopeAngle" type="number" min="5" max="80" step="1" value="30">
+          </div>
           <div class="field"><label>質量 m (kg)</label><input id="pvMassKg" type="number" min="0" step="0.1" value="1"></div>
           <button class="btn" id="pvApplySlope">角度を適用</button>
         </div>
@@ -411,8 +436,29 @@
     $('pvApplySlope').onclick=applySlopeAngle;
     $('pvAutoInclineVectors').onclick=addAutoInclineVectors;
     $('pvClearAutoInclineVectors').onclick=removeAutoInclineVectors;
-    $('pvMassKg').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
-    $('pvSlopeAngle').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
+
+    const syncAngleControls=(value)=>{
+      const angle=clamp(+value||30,5,80);
+      $('pvSlopeAngle').value=angle;
+      $('pvSlopeAngleRange').value=angle;
+      return angle;
+    };
+
+    $('pvSlopeAngleRange').oninput=(e)=>{
+      syncAngleControls(e.target.value);
+      refreshSelectedInclineFromControls({redrawVectors:true,quiet:true});
+    };
+
+    $('pvSlopeAngle').oninput=(e)=>{
+      syncAngleControls(e.target.value);
+      refreshSelectedInclineFromControls({redrawVectors:true,quiet:true});
+    };
+
+    $('pvMassKg').oninput=()=>{
+      updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
+      const hasAuto=items.some(it=>it?.autoPhysicsRole);
+      if(hasAuto) addAutoInclineVectors();
+    };
     $('pvOverlapPick').onclick=()=>{
       state.overlapMode=!state.overlapMode;state.drawMode=false;removePreview();
       $('pvOverlapPick').classList.toggle('primary',state.overlapMode);
