@@ -7,7 +7,8 @@
     drawMode: false,
     overlapMode: false,
     dragStart: null,
-    preview: null
+    preview: null,
+    activeInclineId: null
   };
 
   function $(id){ return document.getElementById(id); }
@@ -241,6 +242,16 @@
     document.body.appendChild(menu);
   }
 
+  function activeIncline(){
+    const selected=items.find(x=>x.id===selectedId && x.physicsKind==='slope');
+    if(selected){
+      state.activeInclineId=selected.id;
+      return selected;
+    }
+    const remembered=items.find(x=>x.id===state.activeInclineId && x.physicsKind==='slope');
+    return remembered || null;
+  }
+
   function physicsSkillStack(){
     return window.TeachingOSPhysicsSkills || null;
   }
@@ -272,6 +283,7 @@
   function applySlopeAngle(){
     const it=items.find(x=>x.id===selectedId);
     if(!it || it.physicsKind!=='slope'){toastPhysics('角度を変える斜面を選択してください。',true);return;}
+    state.activeInclineId=it.id;
     const angle=clamp(+($('pvSlopeAngle')?.value||30),5,80);
     const range=$('pvSlopeAngleRange'); if(range) range.value=angle;
     const old=$('physicsAngleInput'); if(old) old.value=angle;
@@ -293,7 +305,7 @@
   }
 
   function addAutoInclineVectors(){
-    const slope=items.find(x=>x.id===selectedId && x.physicsKind==='slope');
+    const slope=activeIncline();
     if(!slope){toastPhysics('自動分力を表示する斜面を選択してください。',true);return;}
     const api=physicsSkillStack();
     if(!api){toastPhysics('Physics Skill Stack が読み込まれていません。',true);return;}
@@ -350,13 +362,15 @@
       };
     }
 
+    selectedId=slope.id;
+    state.activeInclineId=slope.id;
     saveState();renderAll();
     toastPhysics('Physics Modelから mg / mg sinθ / mg cosθ を自動描画しました。');
   }
 
 
   function refreshSelectedInclineFromControls({redrawVectors=true,quiet=true}={}){
-    const slope=items.find(x=>x.id===selectedId && x.physicsKind==='slope');
+    const slope=activeIncline();
     if(!slope) return false;
     const angle=clamp(+($('pvSlopeAngle')?.value||slope.physicsAngle||30),5,80);
     const old=$('physicsAngleInput'); if(old) old.value=angle;
