@@ -608,7 +608,7 @@
     items.push(it); selectedId=it.id;
     state.active={type,itemId:it.id,params:p};
     state.elapsed=0; state.startTime=0; state.running=false;
-    renderAll(); saveState(); renderActive(); updateButtons();
+    renderAll(); saveState(); renderActive(); updateButtons(); renderExam();
   }
 
   function updateActiveParams(){
@@ -616,10 +616,112 @@
     state.active.params=paramsFromPanel(state.active.type);
     state.elapsed=0; state.startTime=0;
     renderActive();
+    renderExam();
   }
 
   function showFields(type){
     document.querySelectorAll('[data-sim-fields]').forEach(el=>el.hidden=el.dataset.simFields!==type);
+  }
+
+
+  const examBank = {
+    friction: {
+      title:'摩擦：動き出す境界',
+      prompt:p=>`外力Fを増やしていく。どの瞬間に物体は動き始める？ 現在 μs=${p.muS}, m=${p.m} kg。`,
+      reveal:p=>{
+        const m=api().deriveFriction({massKg:p.m,forceN:p.F,muS:p.muS,muK:p.muK,gravity:p.g});
+        return `最大静止摩擦は μsN = ${m.quantities.staticMaxN.toFixed(2)} N。|F|がこれを超えると動き始める。`;
+      }
+    },
+    atwood: {
+      title:'連結体：どちら向きに加速？',
+      prompt:p=>`m₁=${p.m1} kg, m₂=${p.m2} kg。系はどちら向きに加速し、質量差を大きくすると加速度はどうなる？`,
+      reveal:p=>{
+        const m=api().deriveAtwood({m1:p.m1,m2:p.m2,gravity:p.g});
+        return `a=(m₁-m₂)g/(m₁+m₂)=${m.quantities.acceleration.toFixed(3)} m/s²。`;
+      }
+    },
+    energy: {
+      title:'力学的エネルギー：高さを下げる',
+      prompt:p=>`物体が低い位置へ移ると、位置エネルギー・運動エネルギー・全力学的エネルギーはどう変化する？`,
+      reveal:p=>'摩擦なしでは U は減少、K は増加、K+U は一定。'
+    },
+    standing: {
+      title:'定常波：次数を上げる',
+      prompt:p=>`両端固定、弦長と波速一定。次数 n を1つ上げると、波長と振動数はどう変わる？`,
+      reveal:p=>'L=nλ/2 より λ は小さくなり、f=v/λ より振動数は大きくなる。'
+    },
+    dc: {
+      title:'回路：直列と並列',
+      prompt:p=>`同じ2抵抗を直列から並列に変えると、合成抵抗と電源電流はどう変化する？`,
+      reveal:p=>'並列では合成抵抗が小さくなるため、同じ電圧なら電源電流は大きくなる。'
+    },
+    capacitor: {
+      title:'RC：時定数',
+      prompt:p=>`RまたはCを2倍にすると、充電・放電にかかる時間スケールはどう変わる？`,
+      reveal:p=>'τ=RC なので、RまたはCを2倍にすると時定数も2倍。'
+    },
+    projectile: {
+      title:'投射：角度を変える',
+      prompt:p=>`初速度の大きさ一定。角度を大きくすると水平速度成分と鉛直速度成分はどう変わる？`,
+      reveal:p=>'vx=v cosθ は減少、vy0=v sinθ は増加する（0°〜90°）。'
+    },
+    circular: {
+      title:'円運動：速さを2倍',
+      prompt:p=>`半径一定で速さを2倍にすると向心加速度は何倍？`,
+      reveal:p=>'a=v²/r なので4倍。'
+    },
+    faraday: {
+      title:'電磁誘導：時間を半分',
+      prompt:p=>`同じ磁束変化を半分の時間で起こすと、誘導起電力の大きさはどうなる？`,
+      reveal:p=>'|ε|=N|ΔΦ|/Δt なので2倍。'
+    },
+    lens: {
+      title:'レンズ：焦点へ近づける',
+      prompt:p=>`凸レンズで物体を焦点の外側から焦点へ近づけると、実像の位置と大きさはどう変化する？`,
+      reveal:p=>'像距離は大きくなり、実像は遠ざかって拡大する。焦点位置では像は無限遠。'
+    },
+    photoelectric: {
+      title:'光電効果：強さと周波数',
+      prompt:p=>`しきい周波数未満の光を強くすると電子は出る？ 周波数を上げるとKmaxは？`,
+      reveal:p=>'しきい周波数未満では強くしても放出されない。放出域では Kmax=hf-W なので周波数とともに増える。'
+    },
+    gas: {
+      title:'気体：温度変化',
+      prompt:p=>`物質量と体積一定で温度を上げると圧力はどうなる？`,
+      reveal:p=>'PV=nRT より P∝T。絶対温度に比例して増える。'
+    }
+  };
+
+  function currentExam(){
+    return state.active ? examBank[state.active.type] || null : null;
+  }
+
+  function renderExam(){
+    const box=$('psExamBox');
+    if(!box) return;
+    const ex=currentExam();
+    if(!ex){
+      box.innerHTML='<div class="physics-note">このシミュレーターのExam Modeは準備中です。</div>';
+      return;
+    }
+    box.innerHTML=
+      '<div style="font-weight:900">'+ex.title+'</div>'+
+      '<div style="margin-top:6px">'+ex.prompt(state.active.params)+'</div>'+
+      '<textarea id="psExamAnswer" rows="3" placeholder="予測・理由を書く" style="width:100%;margin-top:8px"></textarea>'+
+      '<div class="physics-inline" style="margin-top:8px">'+
+      '<button class="btn small" id="psExamReveal">結果を開示</button>'+
+      '<button class="btn small" id="psExamRetry">再回答</button>'+
+      '</div>'+
+      '<div id="psExamResult" class="physics-note" style="margin-top:8px">まず予測してから結果を開示します。</div>';
+    $('psExamReveal').onclick=()=>{
+      $('psExamResult').textContent=ex.reveal(state.active.params);
+    };
+    $('psExamRetry').onclick=()=>{
+      $('psExamAnswer').value='';
+      $('psExamResult').textContent='条件を変えるか、理由を言い直して再回答してください。';
+      $('psExamAnswer').focus();
+    };
   }
 
   function buildPanel(){
@@ -772,6 +874,10 @@
         <button class="btn" id="psPlay">▶ 再生</button>
         <button class="btn small" id="psReset">↺ リセット</button>
       </div>
+      <details open style="margin-top:10px">
+        <summary style="font-weight:800;cursor:pointer">🎯 Exam Mode</summary>
+        <div id="psExamBox" style="margin-top:8px"><div class="physics-note">Student Viewへ追加すると典型問題を出します。</div></div>
+      </details>
       <div id="psStatus" class="status">シミュレーターを選んで追加してください。</div>
     `;
     host.insertAdjacentElement('afterend',panel);
@@ -783,6 +889,7 @@
     panel.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',updateActiveParams));
     panel.querySelectorAll('select').forEach(sel=>{ if(sel.id!=='psType') sel.addEventListener('change',updateActiveParams); });
     showFields($('psType').value);
+    renderExam();
   }
 
   function boot(){
