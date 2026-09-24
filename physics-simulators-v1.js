@@ -185,6 +185,108 @@
     `);
   }
 
+
+  function renderFriction(p,t){
+    const m=api().deriveFriction({massKg:p.m,forceN:p.F,muS:p.muS,muK:p.muK,gravity:p.g});
+    const q=m.quantities;
+    const x=180+clamp(q.acceleration*t*t*18,-80,260);
+    return makeSvg(`
+      <line x1="60" y1="250" x2="590" y2="250" stroke="#334155" stroke-width="4"/>
+      <rect x="${x}" y="190" width="85" height="55" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <line x1="${x+42}" y1="185" x2="${x+42+clamp(p.F*10,-120,120)}" y2="185" stroke="#475569" stroke-width="4"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">摩擦</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">F = ${p.F.toFixed(2)} N</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">f = ${q.frictionN.toFixed(2)} N</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">a = ${q.acceleration.toFixed(2)} m/s²</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">${q.moving?'動摩擦':'静止摩擦'}</text>
+    `);
+  }
+
+  function renderAtwood(p,t){
+    const m=api().deriveAtwood({m1:p.m1,m2:p.m2,gravity:p.g});
+    const q=m.quantities;
+    const dy=clamp(q.acceleration*t*t*18,-90,90);
+    return makeSvg(`
+      <circle cx="320" cy="95" r="42" fill="none" stroke="#334155" stroke-width="4"/>
+      <line x1="278" y1="95" x2="278" y2="${210+dy}" stroke="#64748b" stroke-width="4"/>
+      <line x1="362" y1="95" x2="362" y2="${210-dy}" stroke="#64748b" stroke-width="4"/>
+      <rect x="240" y="${210+dy}" width="76" height="58" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <rect x="324" y="${210-dy}" width="76" height="58" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">アトウッドの装置</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">a = ${q.acceleration.toFixed(3)} m/s²</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">T = ${q.tensionN.toFixed(3)} N</text>
+    `);
+  }
+
+  function renderEnergy(p,t){
+    const frac=(Math.sin(t)+1)/2;
+    const h=p.h*(1-frac);
+    const m=api().deriveEnergyTrack({massKg:p.m,height:p.h,speed0:p.v0,gravity:p.g,heightAt:h});
+    const q=m.quantities;
+    const px=120+frac*420, py=260-h/Math.max(p.h,.01)*150;
+    return makeSvg(`
+      <path d="M90 100 Q320 310 560 260" fill="none" stroke="#64748b" stroke-width="5"/>
+      <circle cx="${px}" cy="${py}" r="15" fill="#475569"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">力学的エネルギー</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">K = ${q.kineticEnergy.toFixed(2)} J</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">U = ${q.potentialEnergy.toFixed(2)} J</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">E = ${q.totalEnergy.toFixed(2)} J</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">v = ${q.speed.toFixed(2)} m/s</text>
+    `);
+  }
+
+  function renderStandingWave(p,t){
+    const m=api().deriveStandingWave({length:p.L,harmonic:p.n,waveSpeed:p.v});
+    const q=m.quantities;
+    const pts=[];
+    for(let i=0;i<=120;i++){
+      const x=i/120;
+      const y=Math.sin(p.n*Math.PI*x)*Math.cos(2*Math.PI*q.frequency*t)*70;
+      const px=70+x*500, py=190-y;
+      pts.push((i?'L':'M')+px.toFixed(1)+' '+py.toFixed(1));
+    }
+    return makeSvg(`
+      <line x1="70" y1="190" x2="570" y2="190" stroke="#94a3b8" stroke-width="2"/>
+      <path d="${pts.join(' ')}" fill="none" stroke="#475569" stroke-width="4"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">両端固定弦の定常波</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">n = ${p.n}</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">λ = ${q.wavelength.toFixed(3)} m</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">f = ${q.frequency.toFixed(3)} Hz</text>
+    `);
+  }
+
+  function renderDCCircuit(p,t){
+    const m=api().deriveDCCircuit({voltage:p.V,r1:p.R1,r2:p.R2,mode:p.mode});
+    const q=m.quantities;
+    return makeSvg(`
+      <text x="40" y="45" font-size="24" font-family="sans-serif">直流回路（${p.mode==='parallel'?'並列':'直列'}）</text>
+      <rect x="110" y="115" width="110" height="45" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <rect x="420" y="115" width="110" height="45" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <line x1="80" y1="138" x2="110" y2="138" stroke="#334155" stroke-width="4"/>
+      <line x1="220" y1="138" x2="420" y2="138" stroke="#334155" stroke-width="4"/>
+      <line x1="530" y1="138" x2="560" y2="138" stroke="#334155" stroke-width="4"/>
+      <text x="40" y="210" font-size="18" font-family="sans-serif">Req = ${q.equivalentResistance.toFixed(2)} Ω</text>
+      <text x="40" y="238" font-size="18" font-family="sans-serif">I = ${q.totalCurrent.toFixed(3)} A</text>
+      <text x="40" y="266" font-size="18" font-family="sans-serif">V₁ = ${q.v1.toFixed(2)} V, V₂ = ${q.v2.toFixed(2)} V</text>
+    `);
+  }
+
+  function renderCapacitor(p,t){
+    const m=api().deriveCapacitor({capacitanceMicroF:p.C,voltage:p.V,resistanceOhm:p.R,t,mode:p.mode});
+    const q=m.quantities;
+    const fill=clamp(q.capacitorVoltage/Math.max(p.V,.0001),0,1);
+    return makeSvg(`
+      <text x="40" y="45" font-size="24" font-family="sans-serif">RC ${p.mode==='discharge'?'放電':'充電'}</text>
+      <line x1="260" y1="100" x2="260" y2="270" stroke="#334155" stroke-width="6"/>
+      <line x1="330" y1="100" x2="330" y2="270" stroke="#334155" stroke-width="6"/>
+      <rect x="265" y="${260-fill*150}" width="60" height="${fill*150}" fill="#cbd5e1"/>
+      <text x="40" y="100" font-size="18" font-family="sans-serif">τ = ${q.timeConstant.toFixed(4)} s</text>
+      <text x="40" y="128" font-size="18" font-family="sans-serif">Vc = ${q.capacitorVoltage.toFixed(3)} V</text>
+      <text x="40" y="156" font-size="18" font-family="sans-serif">I = ${q.current.toExponential(3)} A</text>
+      <text x="40" y="184" font-size="18" font-family="sans-serif">Q = ${q.charge.toExponential(3)} C</text>
+    `);
+  }
+
   const defs={
     kinematics:{
       name:'等加速度運動',
@@ -244,6 +346,48 @@
       defaults:{Q:1,x:1,y:0},
       render:renderElectricField,
       verify:(p,t)=>api().verificationSummary(api().verifyElectricField(api().deriveElectricField({sourceChargeMicroC:p.Q,testX:p.x,testY:p.y})))
+    },
+    friction:{
+      name:'摩擦',
+      duration:p=>5,
+      defaults:{m:1,F:5,muS:.4,muK:.3,g:9.8},
+      render:renderFriction,
+      verify:(p,t)=>api().verificationSummary(api().verifyFriction(api().deriveFriction({massKg:p.m,forceN:p.F,muS:p.muS,muK:p.muK,gravity:p.g})))
+    },
+    atwood:{
+      name:'連結体・滑車',
+      duration:p=>5,
+      defaults:{m1:2,m2:1,g:9.8},
+      render:renderAtwood,
+      verify:(p,t)=>api().verificationSummary(api().verifyAtwood(api().deriveAtwood({m1:p.m1,m2:p.m2,gravity:p.g})))
+    },
+    energy:{
+      name:'力学的エネルギー',
+      duration:p=>6,
+      defaults:{m:1,h:2,v0:0,g:9.8},
+      render:renderEnergy,
+      verify:(p,t)=>api().verificationSummary(api().verifyEnergyTrack(api().deriveEnergyTrack({massKg:p.m,height:p.h,speed0:p.v0,gravity:p.g,heightAt:p.h/2})))
+    },
+    standing:{
+      name:'定常波',
+      duration:p=>6,
+      defaults:{L:1,n:2,v:100},
+      render:renderStandingWave,
+      verify:(p,t)=>api().verificationSummary(api().verifyStandingWave(api().deriveStandingWave({length:p.L,harmonic:p.n,waveSpeed:p.v})))
+    },
+    dc:{
+      name:'直流回路',
+      duration:p=>1,
+      defaults:{V:6,R1:10,R2:20,mode:'series'},
+      render:renderDCCircuit,
+      verify:(p,t)=>api().verificationSummary(api().verifyDCCircuit(api().deriveDCCircuit({voltage:p.V,r1:p.R1,r2:p.R2,mode:p.mode})))
+    },
+    capacitor:{
+      name:'コンデンサー・RC',
+      duration:p=>Math.max(.5,api().deriveCapacitor({capacitanceMicroF:p.C,voltage:p.V,resistanceOhm:p.R,t:0,mode:p.mode}).quantities.timeConstant*5),
+      defaults:{C:100,V:6,R:1000,mode:'charge'},
+      render:renderCapacitor,
+      verify:(p,t)=>api().verificationSummary(api().verifyCapacitor(api().deriveCapacitor({capacitanceMicroF:p.C,voltage:p.V,resistanceOhm:p.R,t,mode:p.mode})))
     }
   };
 
@@ -270,8 +414,26 @@
     if(type==='wave') return {
       A:Math.max(.01,+$('psWaveA').value||1),lambda:Math.max(.05,+$('psLambda').value||2),f:Math.max(0,+$('psFreq').value||1)
     };
-    return {
+    if(type==='electric') return {
       Q:+$('psQ').value||0,x:+$('psEX').value||1,y:+$('psEY').value||0
+    };
+    if(type==='friction') return {
+      m:Math.max(.01,+$('psFricM').value||1),F:+$('psForce').value||0,muS:Math.max(0,+$('psMuS').value||0),muK:Math.max(0,+$('psMuK').value||0),g:9.8
+    };
+    if(type==='atwood') return {
+      m1:Math.max(.01,+$('psAM1').value||1),m2:Math.max(.01,+$('psAM2').value||1),g:9.8
+    };
+    if(type==='energy') return {
+      m:Math.max(.01,+$('psEnergyM').value||1),h:Math.max(0,+$('psEnergyH').value||0),v0:Math.max(0,+$('psEnergyV0').value||0),g:9.8
+    };
+    if(type==='standing') return {
+      L:Math.max(.01,+$('psStandL').value||1),n:Math.max(1,Math.round(+$('psStandN').value||1)),v:Math.max(.01,+$('psStandV').value||100)
+    };
+    if(type==='dc') return {
+      V:Math.max(0,+$('psDCV').value||0),R1:Math.max(.01,+$('psR1').value||1),R2:Math.max(.01,+$('psR2').value||1),mode:$('psDCMode').value
+    };
+    return {
+      C:Math.max(.001,+$('psCapC').value||100),V:Math.max(0,+$('psCapV').value||0),R:Math.max(.01,+$('psCapR').value||1000),mode:$('psCapMode').value
     };
   }
 
@@ -371,6 +533,12 @@
           <option value="pendulum">単振り子</option>
           <option value="wave">正弦進行波</option>
           <option value="electric">電場・電位</option>
+          <option value="friction">摩擦</option>
+          <option value="atwood">連結体・滑車</option>
+          <option value="energy">力学的エネルギー</option>
+          <option value="standing">定常波</option>
+          <option value="dc">直流回路</option>
+          <option value="capacitor">コンデンサー・RC</option>
         </select>
       </div>
 
@@ -424,6 +592,44 @@
         <div class="field"><label>y (m)</label><input id="psEY" type="number" value="0" step="0.1"></div></div>
       </div>
 
+      <div data-sim-fields="friction" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m (kg)</label><input id="psFricM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>外力 F (N)</label><input id="psForce" type="number" value="5" step="0.5"></div></div>
+        <div class="physics-inline"><div class="field"><label>μs</label><input id="psMuS" type="number" value="0.4" step="0.05"></div>
+        <div class="field"><label>μk</label><input id="psMuK" type="number" value="0.3" step="0.05"></div></div>
+      </div>
+
+      <div data-sim-fields="atwood" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m₁</label><input id="psAM1" type="number" value="2" step="0.1"></div>
+        <div class="field"><label>m₂</label><input id="psAM2" type="number" value="1" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="energy" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m (kg)</label><input id="psEnergyM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>h (m)</label><input id="psEnergyH" type="number" value="2" step="0.2"></div>
+        <div class="field"><label>v₀</label><input id="psEnergyV0" type="number" value="0" step="0.5"></div></div>
+      </div>
+
+      <div data-sim-fields="standing" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>L (m)</label><input id="psStandL" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>次数 n</label><input id="psStandN" type="number" value="2" min="1" step="1"></div>
+        <div class="field"><label>波速</label><input id="psStandV" type="number" value="100" step="5"></div></div>
+      </div>
+
+      <div data-sim-fields="dc" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>電圧 V</label><input id="psDCV" type="number" value="6" step="1"></div>
+        <div class="field"><label>R₁</label><input id="psR1" type="number" value="10" step="1"></div>
+        <div class="field"><label>R₂</label><input id="psR2" type="number" value="20" step="1"></div></div>
+        <div class="field"><label>接続</label><select id="psDCMode"><option value="series">直列</option><option value="parallel">並列</option></select></div>
+      </div>
+
+      <div data-sim-fields="capacitor" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>C (μF)</label><input id="psCapC" type="number" value="100" step="10"></div>
+        <div class="field"><label>V</label><input id="psCapV" type="number" value="6" step="1"></div>
+        <div class="field"><label>R (Ω)</label><input id="psCapR" type="number" value="1000" step="100"></div></div>
+        <div class="field"><label>モード</label><select id="psCapMode"><option value="charge">充電</option><option value="discharge">放電</option></select></div>
+      </div>
+
       <div class="physics-inline" style="margin-top:8px">
         <button class="btn primary" id="psAdd">Student Viewへ追加</button>
         <button class="btn" id="psPlay">▶ 再生</button>
@@ -438,6 +644,7 @@
     $('psPlay').onclick=playPause;
     $('psReset').onclick=reset;
     panel.querySelectorAll('input').forEach(inp=>inp.addEventListener('input',updateActiveParams));
+    panel.querySelectorAll('select').forEach(sel=>{ if(sel.id!=='psType') sel.addEventListener('change',updateActiveParams); });
     showFields($('psType').value);
   }
 
