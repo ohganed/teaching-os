@@ -106,6 +106,85 @@
     `);
   }
 
+
+  function renderCollision(p,t){
+    const m=api().deriveCollision({m1:p.m1,m2:p.m2,u1:p.u1,u2:p.u2,restitution:p.e});
+    const q=m.quantities;
+    const hitTime=1.6;
+    const before=t<hitTime;
+    const dt=before?t:t-hitTime;
+    const x1=before?180+p.u1*40*t:260+q.v1*40*dt;
+    const x2=before?430+p.u2*40*t:350+q.v2*40*dt;
+    return makeSvg(`
+      <line x1="60" y1="245" x2="590" y2="245" stroke="#334155" stroke-width="4"/>
+      <rect x="${clamp(x1,70,540)-35}" y="190" width="70" height="45" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <rect x="${clamp(x2,100,570)-35}" y="190" width="70" height="45" rx="8" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">1次元衝突</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">e = ${p.e.toFixed(2)}</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">v₁ = ${q.v1.toFixed(2)} m/s</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">v₂ = ${q.v2.toFixed(2)} m/s</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">p(before)=${q.pBefore.toFixed(2)}, p(after)=${q.pAfter.toFixed(2)}</text>
+    `);
+  }
+
+  function renderPendulum(p,t){
+    const m=api().derivePendulum({length:p.L,gravity:p.g,amplitudeDeg:p.amp,t});
+    const q=m.quantities;
+    const ox=350, oy=70, scale=150/Math.max(p.L,.1);
+    const Lpx=Math.min(190,p.L*scale);
+    const bx=ox+Lpx*Math.sin(q.theta);
+    const by=oy+Lpx*Math.cos(q.theta);
+    return makeSvg(`
+      <circle cx="${ox}" cy="${oy}" r="6" fill="#334155"/>
+      <line x1="${ox}" y1="${oy}" x2="${bx}" y2="${by}" stroke="#64748b" stroke-width="4"/>
+      <circle cx="${bx}" cy="${by}" r="18" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <line x1="${ox}" y1="${oy}" x2="${ox}" y2="${oy+190}" stroke="#94a3b8" stroke-dasharray="8 8" stroke-width="2"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">単振り子（小振幅）</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">θ = ${(q.theta*180/Math.PI).toFixed(2)}°</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">T = ${q.period.toFixed(3)} s</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">ω = ${q.omega.toFixed(3)} rad/s</text>
+    `);
+  }
+
+  function renderWave(p,t){
+    const pts=[];
+    for(let i=0;i<=100;i++){
+      const x=i/100*10;
+      const y=api().deriveWave({amplitude:p.A,wavelength:p.lambda,frequency:p.f,x,t}).quantities.y;
+      const px=60+i/100*520;
+      const py=190-y*70/Math.max(p.A,.01);
+      pts.push((i?'L':'M')+px.toFixed(1)+' '+py.toFixed(1));
+    }
+    return makeSvg(`
+      <line x1="55" y1="190" x2="590" y2="190" stroke="#94a3b8" stroke-width="2"/>
+      <path d="${pts.join(' ')}" fill="none" stroke="#475569" stroke-width="4"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">正弦進行波</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">λ = ${p.lambda.toFixed(2)} m</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">f = ${p.f.toFixed(2)} Hz</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">v = ${(p.f*p.lambda).toFixed(2)} m/s</text>
+    `);
+  }
+
+  function renderElectricField(p,t){
+    const m=api().deriveElectricField({sourceChargeMicroC:p.Q,testX:p.x,testY:p.y});
+    const q=m.quantities;
+    const cx=320, cy=190;
+    const tx=cx+p.x*70, ty=cy-p.y*70;
+    const dirX=q.magnitude>0?q.ex/q.magnitude:0;
+    const dirY=q.magnitude>0?q.ey/q.magnitude:0;
+    const ex=tx+dirX*80, ey=ty-dirY*80;
+    return makeSvg(`
+      <circle cx="${cx}" cy="${cy}" r="24" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <text x="${cx}" y="${cy+7}" text-anchor="middle" font-size="24" font-family="sans-serif">${p.Q>=0?'+':'−'}</text>
+      <circle cx="${tx}" cy="${ty}" r="9" fill="#475569"/>
+      <line x1="${tx}" y1="${ty}" x2="${ex}" y2="${ey}" stroke="#64748b" stroke-width="4"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">点電荷の電場・電位</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">r = ${q.r.toFixed(2)} m</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">|E| = ${q.magnitude.toExponential(3)} N/C</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">V = ${q.potential.toExponential(3)} V</text>
+    `);
+  }
+
   const defs={
     kinematics:{
       name:'等加速度運動',
@@ -137,6 +216,34 @@
       defaults:{r:1,v:2},
       render:renderCircular,
       verify:(p,t)=>api().verificationSummary(api().verifyCircular(api().deriveCircular({radius:p.r,speed:p.v,t})))
+    },
+    collision:{
+      name:'1次元衝突',
+      duration:p=>4,
+      defaults:{m1:1,m2:1,u1:2,u2:0,e:1},
+      render:renderCollision,
+      verify:(p,t)=>api().verificationSummary(api().verifyCollision(api().deriveCollision({m1:p.m1,m2:p.m2,u1:p.u1,u2:p.u2,restitution:p.e})))
+    },
+    pendulum:{
+      name:'単振り子',
+      duration:p=>api().derivePendulum({length:p.L,gravity:p.g,amplitudeDeg:p.amp,t:0}).quantities.period*3,
+      defaults:{L:1,g:9.8,amp:10},
+      render:renderPendulum,
+      verify:(p,t)=>api().verificationSummary(api().verifyPendulum(api().derivePendulum({length:p.L,gravity:p.g,amplitudeDeg:p.amp,t})))
+    },
+    wave:{
+      name:'正弦進行波',
+      duration:p=>6,
+      defaults:{A:1,lambda:2,f:1},
+      render:renderWave,
+      verify:(p,t)=>api().verificationSummary(api().verifyWave(api().deriveWave({amplitude:p.A,wavelength:p.lambda,frequency:p.f,x:0,t})))
+    },
+    electric:{
+      name:'電場・電位',
+      duration:p=>1,
+      defaults:{Q:1,x:1,y:0},
+      render:renderElectricField,
+      verify:(p,t)=>api().verificationSummary(api().verifyElectricField(api().deriveElectricField({sourceChargeMicroC:p.Q,testX:p.x,testY:p.y})))
     }
   };
 
@@ -150,8 +257,21 @@
     if(type==='spring') return {
       mass:Math.max(.01,+$('psMass').value||1),k:Math.max(.01,+$('psK').value||10),A:Math.max(0,+$('psAmp').value||0)
     };
-    return {
+    if(type==='circular') return {
       r:Math.max(.01,+$('psRadius').value||1),v:Math.max(0,+$('psCircV').value||0)
+    };
+    if(type==='collision') return {
+      m1:Math.max(.01,+$('psM1').value||1),m2:Math.max(.01,+$('psM2').value||1),
+      u1:+$('psU1').value||0,u2:+$('psU2').value||0,e:clamp(+$('psE').value||0,0,1)
+    };
+    if(type==='pendulum') return {
+      L:Math.max(.05,+$('psL').value||1),g:Math.max(.1,+$('psPendG').value||9.8),amp:clamp(+$('psPendAmp').value||10,0,30)
+    };
+    if(type==='wave') return {
+      A:Math.max(.01,+$('psWaveA').value||1),lambda:Math.max(.05,+$('psLambda').value||2),f:Math.max(0,+$('psFreq').value||1)
+    };
+    return {
+      Q:+$('psQ').value||0,x:+$('psEX').value||1,y:+$('psEY').value||0
     };
   }
 
@@ -247,6 +367,10 @@
           <option value="projectile">投射運動</option>
           <option value="spring">ばね振動</option>
           <option value="circular">等速円運動</option>
+          <option value="collision">1次元衝突</option>
+          <option value="pendulum">単振り子</option>
+          <option value="wave">正弦進行波</option>
+          <option value="electric">電場・電位</option>
         </select>
       </div>
 
@@ -272,6 +396,32 @@
       <div data-sim-fields="circular" class="col" hidden>
         <div class="physics-inline"><div class="field"><label>r (m)</label><input id="psRadius" type="number" value="1" step="0.1"></div>
         <div class="field"><label>v (m/s)</label><input id="psCircV" type="number" value="2" step="0.2"></div></div>
+      </div>
+
+      <div data-sim-fields="collision" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m₁</label><input id="psM1" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>m₂</label><input id="psM2" type="number" value="1" step="0.1"></div></div>
+        <div class="physics-inline"><div class="field"><label>u₁</label><input id="psU1" type="number" value="2" step="0.2"></div>
+        <div class="field"><label>u₂</label><input id="psU2" type="number" value="0" step="0.2"></div>
+        <div class="field"><label>反発係数 e</label><input id="psE" type="number" min="0" max="1" value="1" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="pendulum" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>L (m)</label><input id="psL" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>振幅 (°)</label><input id="psPendAmp" type="number" value="10" min="0" max="30" step="1"></div>
+        <div class="field"><label>g</label><input id="psPendG" type="number" value="9.8" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="wave" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>A</label><input id="psWaveA" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>λ (m)</label><input id="psLambda" type="number" value="2" step="0.1"></div>
+        <div class="field"><label>f (Hz)</label><input id="psFreq" type="number" value="1" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="electric" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>Q (μC)</label><input id="psQ" type="number" value="1" step="0.5"></div>
+        <div class="field"><label>x (m)</label><input id="psEX" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>y (m)</label><input id="psEY" type="number" value="0" step="0.1"></div></div>
       </div>
 
       <div class="physics-inline" style="margin-top:8px">
