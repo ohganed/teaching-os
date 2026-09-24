@@ -389,6 +389,76 @@
     }
   }
 
+
+  const derivationState = { step: 0 };
+
+  function inclineDerivationSteps(){
+    const api=physicsSkillStack();
+    const angle=clamp(+($('pvSlopeAngle')?.value||30),5,80);
+    const mass=clamp(+($('pvMassKg')?.value||1),0,10000);
+    const model=api ? api.deriveInclineForces({massKg:mass,gravity:9.8,angleDeg:angle}) : null;
+    const q=model?.quantities || {weightN:mass*9.8,parallelN:NaN,normalComponentN:NaN};
+    return [
+      {
+        title:'1. 現象',
+        body:`質量 ${mass} kg の物体には、鉛直下向きに重力 mg が働く。`,
+        formula:`mg = ${q.weightN.toFixed(2)} N`
+      },
+      {
+        title:'2. 座標を斜面に合わせる',
+        body:'斜面方向と、斜面に垂直な方向を新しい2軸として考える。重力そのものは変わらない。',
+        formula:'source vector: mg'
+      },
+      {
+        title:'3. 重力を2軸へ射影する',
+        body:`斜面角 θ=${angle}°。重力ベクトルを斜面方向・垂直方向に分ける。`,
+        formula:'orthogonal projection'
+      },
+      {
+        title:'4. 斜面方向の成分',
+        body:'斜面方向の成分は、重力ベクトルの斜面方向への射影として現れる。',
+        formula:`F∥ = mg sinθ = ${Number(q.parallelN).toFixed(2)} N`
+      },
+      {
+        title:'5. 斜面に垂直な成分',
+        body:'斜面に垂直な成分は、重力ベクトルの垂直方向への射影として現れる。',
+        formula:`F⊥ = mg cosθ = ${Number(q.normalComponentN).toFixed(2)} N`
+      },
+      {
+        title:'6. 検証',
+        body:'2つの成分を直交ベクトルとして合成すると、元の重力 mg に戻る。',
+        formula:`√(F∥² + F⊥²) = mg`
+      }
+    ];
+  }
+
+  function renderInclineDerivation(){
+    const box=$('pvDerivation');
+    if(!box) return;
+    const steps=inclineDerivationSteps();
+    derivationState.step=clamp(derivationState.step,0,steps.length-1);
+    const s=steps[derivationState.step];
+    box.innerHTML=
+      '<div style="font-weight:900">'+s.title+'</div>'+
+      '<div style="margin-top:6px">'+s.body+'</div>'+
+      '<div style="margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px">'+s.formula+'</div>'+
+      '<div style="margin-top:8px;font-size:12px;opacity:.75">Step '+(derivationState.step+1)+' / '+steps.length+'</div>';
+    const prev=$('pvDerivePrev'), next=$('pvDeriveNext');
+    if(prev) prev.disabled=derivationState.step<=0;
+    if(next) next.disabled=derivationState.step>=steps.length-1;
+  }
+
+  function stepInclineDerivation(delta){
+    const steps=inclineDerivationSteps();
+    derivationState.step=clamp(derivationState.step+delta,0,steps.length-1);
+    renderInclineDerivation();
+  }
+
+  function resetInclineDerivation(){
+    derivationState.step=0;
+    renderInclineDerivation();
+  }
+
   function toastPhysics(msg,error=false){
     const n=$('pvStatus'); if(!n)return;
     n.textContent=msg;n.style.color=error?'#ffb4b4':'#bfe0ff';
@@ -434,6 +504,15 @@
           <button class="btn primary" id="pvAutoInclineVectors">⚙ モデルから分力を描画</button>
           <button class="btn small" id="pvClearAutoInclineVectors">自動分力を消す</button>
         </div>
+        <details open>
+          <summary style="font-weight:800;cursor:pointer">🧭 Derivation View</summary>
+          <div id="pvDerivation" class="physics-note" style="margin-top:8px">導出を準備しています。</div>
+          <div class="physics-inline" style="margin-top:8px">
+            <button class="btn small" id="pvDerivePrev">← 前</button>
+            <button class="btn small" id="pvDeriveReset">最初から</button>
+            <button class="btn small" id="pvDeriveNext">次 →</button>
+          </div>
+        </details>
         <div class="physics-inline">
           <button class="btn small" id="pvLayerDown">一段 後ろ</button>
           <button class="btn small" id="pvLayerUp">一段 前</button>
@@ -450,6 +529,9 @@
     $('pvApplySlope').onclick=applySlopeAngle;
     $('pvAutoInclineVectors').onclick=addAutoInclineVectors;
     $('pvClearAutoInclineVectors').onclick=removeAutoInclineVectors;
+    $('pvDerivePrev').onclick=()=>stepInclineDerivation(-1);
+    $('pvDeriveNext').onclick=()=>stepInclineDerivation(1);
+    $('pvDeriveReset').onclick=resetInclineDerivation;
 
     const syncAngleControls=(value)=>{
       const angle=clamp(+value||30,5,80);
@@ -461,6 +543,8 @@
     $('pvSlopeAngleRange').oninput=(e)=>{
       syncAngleControls(e.target.value);
       refreshSelectedInclineFromControls({redrawVectors:true,quiet:true});
+      renderInclineDerivation();
+      renderInclineDerivation();
     };
 
     $('pvSlopeAngle').oninput=(e)=>{
@@ -470,6 +554,7 @@
 
     $('pvMassKg').oninput=()=>{
       updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
+      renderInclineDerivation();
       const hasAuto=items.some(it=>it?.autoPhysicsRole);
       if(hasAuto) addAutoInclineVectors();
     };
@@ -483,6 +568,7 @@
     $('pvLayerUp').onclick=()=>moveLayer(1);
     $('pvLayerBottom').onclick=()=>extremeLayer(false);
     $('pvLayerTop').onclick=()=>extremeLayer(true);
+    renderInclineDerivation();
   }
 
   function improvePhysicsTouch(){
