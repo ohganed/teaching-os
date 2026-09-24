@@ -473,6 +473,114 @@
     ];
   }
 
+
+  function deriveIdealGas({pressureKPa=100,volumeL=10,amountMol=0.4,temperatureK=300}={}){
+    const P=Math.max(0.0001,Number(pressureKPa)||100)*1000;
+    const V=Math.max(0.000001,Number(volumeL)||10)/1000;
+    const n=Math.max(0.000001,Number(amountMol)||0.4);
+    const T=Math.max(0.0001,Number(temperatureK)||300);
+    const R=8.314462618;
+    const pv=P*V;
+    const nrt=n*R*T;
+    return {
+      phenomenon:'理想気体の状態',
+      givens:{pressurePa:P,volumeM3:V,amountMol:n,temperatureK:T,R},
+      principle:'PV=nRT',
+      quantities:{pv,nrt,relativeError:Math.abs(pv-nrt)/Math.max(1,Math.abs(nrt))}
+    };
+  }
+
+  function verifyIdealGas(model){
+    const q=model.quantities;
+    return [
+      makeCheck('gas-state','PV=nRT','ideal gas law','numeric comparison',
+        q.relativeError<0.05,`relative error=${q.relativeError}`)
+    ];
+  }
+
+  function deriveFaraday({turns=100,areaM2=0.01,b0T=0,b1T=0.5,dt=0.2}={}){
+    const N=Math.max(1,Math.round(Number(turns)||1));
+    const A=Math.max(0,Number(areaM2)||0);
+    const b0=Number(b0T)||0, b1=Number(b1T)||0;
+    const dtime=Math.max(0.000001,Number(dt)||0.2);
+    const phi0=b0*A, phi1=b1*A;
+    const emf=-N*(phi1-phi0)/dtime;
+    return {
+      phenomenon:'磁束変化による電磁誘導',
+      givens:{turns:N,areaM2:A,b0T:b0,b1T:b1,dt:dtime},
+      principle:'Faradayの法則 ε=-NΔΦ/Δt',
+      quantities:{phi0,phi1,deltaPhi:phi1-phi0,emf}
+    };
+  }
+
+  function verifyFaraday(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('faraday','ε=-NΔΦ/Δt','Faraday law','numeric equality',
+        nearlyEqual(q.emf,-g.turns*q.deltaPhi/g.dt))
+    ];
+  }
+
+  function deriveThinLens({focalLengthCm=20,objectDistanceCm=60}={}){
+    const f=Number(focalLengthCm)||20;
+    const u=Number(objectDistanceCm)||60;
+    if(Math.abs(f)<1e-9 || Math.abs(u)<1e-9 || nearlyEqual(1/f,1/u)){
+      return {
+        phenomenon:'薄レンズ',
+        givens:{focalLengthCm:f,objectDistanceCm:u},
+        principle:'1/f=1/u+1/v',
+        quantities:{imageDistanceCm:Infinity,magnification:Infinity}
+      };
+    }
+    const v=1/(1/f-1/u);
+    const m=-v/u;
+    return {
+      phenomenon:'薄レンズによる結像',
+      givens:{focalLengthCm:f,objectDistanceCm:u},
+      principle:'1/f=1/u+1/v',
+      quantities:{imageDistanceCm:v,magnification:m}
+    };
+  }
+
+  function verifyThinLens(model){
+    const g=model.givens,q=model.quantities;
+    if(!Number.isFinite(q.imageDistanceCm)) return [
+      makeCheck('lens-infinity','物体が焦点位置なら像は無限遠','thin lens limit','limit case',true)
+    ];
+    return [
+      makeCheck('lens-eq','1/f=1/u+1/v','thin lens equation','numeric equality',
+        nearlyEqual(1/g.focalLengthCm,1/g.objectDistanceCm+1/q.imageDistanceCm))
+    ];
+  }
+
+  function derivePhotoelectric({frequencyHz=8e14,workFunctionEV=2.0}={}){
+    const f=Math.max(0,Number(frequencyHz)||0);
+    const phiEV=Math.max(0,Number(workFunctionEV)||0);
+    const h=6.62607015e-34;
+    const e=1.602176634e-19;
+    const photonJ=h*f;
+    const photonEV=photonJ/e;
+    const maxKEEV=Math.max(0,photonEV-phiEV);
+    const emitted=photonEV>=phiEV;
+    const stoppingPotentialV=maxKEEV;
+    return {
+      phenomenon:'光電効果',
+      givens:{frequencyHz:f,workFunctionEV:phiEV,h,e},
+      principle:'hf = W + Kmax',
+      quantities:{photonEV,maxKEEV,stoppingPotentialV,emitted}
+    };
+  }
+
+  function verifyPhotoelectric(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('photo-energy','hf=W+Kmax（放出時）','Einstein photoelectric equation','numeric equality',
+        !q.emitted || nearlyEqual(q.photonEV,g.workFunctionEV+q.maxKEEV)),
+      makeCheck('photo-threshold','hf<Wなら電子は放出されない','threshold condition','state check',
+        q.emitted || q.photonEV<g.workFunctionEV)
+    ];
+  }
+
   // -----------------------------
   // 2. Verification Layer
   // -----------------------------
@@ -670,7 +778,11 @@
       deriveEnergyTrack,
       deriveStandingWave,
       deriveDCCircuit,
-      deriveCapacitor
+      deriveCapacitor,
+      deriveIdealGas,
+      deriveFaraday,
+      deriveThinLens,
+      derivePhotoelectric
     },
     'physics-verification': {
       verifyInclineModel,
@@ -688,6 +800,10 @@
       verifyStandingWave,
       verifyDCCircuit,
       verifyCapacitor,
+      verifyIdealGas,
+      verifyFaraday,
+      verifyThinLens,
+      verifyPhotoelectric,
       verificationSummary,
       registerVerificationAdapter,
       verifyWithAdapter
@@ -726,6 +842,10 @@
     deriveStandingWave,
     deriveDCCircuit,
     deriveCapacitor,
+    deriveIdealGas,
+    deriveFaraday,
+    deriveThinLens,
+    derivePhotoelectric,
     verifyInclineModel,
     verifyKinematics,
     verifyProjectile,
@@ -741,6 +861,10 @@
     verifyStandingWave,
     verifyDCCircuit,
     verifyCapacitor,
+    verifyIdealGas,
+    verifyFaraday,
+    verifyThinLens,
+    verifyPhotoelectric,
     verificationSummary,
     inclineVisualizationSpec,
     buildInclineLessonDesign,
