@@ -287,6 +287,74 @@
     `);
   }
 
+
+  function renderIdealGas(p,t){
+    const m=api().deriveIdealGas({pressureKPa:p.P,volumeL:p.V,amountMol:p.n,temperatureK:p.T});
+    const q=m.quantities;
+    const pistonX=200+clamp(p.V/20,0.1,1)*300;
+    return makeSvg(`
+      <rect x="180" y="110" width="340" height="140" fill="none" stroke="#334155" stroke-width="4"/>
+      <rect x="${pistonX}" y="105" width="16" height="150" fill="#94a3b8"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">理想気体</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">P = ${p.P.toFixed(1)} kPa</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">V = ${p.V.toFixed(2)} L</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">T = ${p.T.toFixed(1)} K</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">PV = ${q.pv.toFixed(2)} J</text>
+      <text x="40" y="194" font-size="18" font-family="sans-serif">nRT = ${q.nrt.toFixed(2)} J</text>
+    `);
+  }
+
+  function renderFaraday(p,t){
+    const b=p.B0+(p.B1-p.B0)*clamp(t/Math.max(p.dt,.001),0,1);
+    const m=api().deriveFaraday({turns:p.N,areaM2:p.A,b0T:p.B0,b1T:p.B1,dt:p.dt});
+    const q=m.quantities;
+    return makeSvg(`
+      <ellipse cx="360" cy="190" rx="110" ry="70" fill="none" stroke="#334155" stroke-width="5"/>
+      <text x="360" y="195" text-anchor="middle" font-size="24" font-family="sans-serif">coil × ${p.N}</text>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">電磁誘導</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">B(t) = ${b.toFixed(3)} T</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">ΔΦ = ${q.deltaPhi.toExponential(3)} Wb</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">ε = ${q.emf.toFixed(3)} V</text>
+    `);
+  }
+
+  function renderThinLens(p,t){
+    const m=api().deriveThinLens({focalLengthCm:p.f,objectDistanceCm:p.u});
+    const q=m.quantities;
+    const lensX=320, axisY=190;
+    const objectX=lensX-clamp(Math.abs(p.u)*3,70,230);
+    const v=q.imageDistanceCm;
+    const imageX=Number.isFinite(v)?lensX+clamp(v*3,-230,230):580;
+    const objH=70;
+    const imgH=Number.isFinite(q.magnification)?objH*q.magnification:0;
+    return makeSvg(`
+      <line x1="50" y1="${axisY}" x2="590" y2="${axisY}" stroke="#94a3b8" stroke-width="2"/>
+      <line x1="${lensX}" y1="70" x2="${lensX}" y2="310" stroke="#334155" stroke-width="5"/>
+      <line x1="${objectX}" y1="${axisY}" x2="${objectX}" y2="${axisY-objH}" stroke="#475569" stroke-width="5"/>
+      ${Number.isFinite(v)?`<line x1="${imageX}" y1="${axisY}" x2="${imageX}" y2="${axisY-imgH}" stroke="#64748b" stroke-width="5"/>`:''}
+      <text x="40" y="45" font-size="24" font-family="sans-serif">薄レンズ</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">f = ${p.f.toFixed(1)} cm</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">u = ${p.u.toFixed(1)} cm</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">v = ${Number.isFinite(v)?v.toFixed(2):'∞'} cm</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">m = ${Number.isFinite(q.magnification)?q.magnification.toFixed(3):'∞'}</text>
+    `);
+  }
+
+  function renderPhotoelectric(p,t){
+    const m=api().derivePhotoelectric({frequencyHz:p.f,workFunctionEV:p.W});
+    const q=m.quantities;
+    return makeSvg(`
+      <rect x="360" y="120" width="170" height="120" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <line x1="120" y1="150" x2="350" y2="175" stroke="#64748b" stroke-width="6"/>
+      ${q.emitted?'<circle cx="550" cy="180" r="9" fill="#475569"/>':''}
+      <text x="40" y="45" font-size="24" font-family="sans-serif">光電効果</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">hf = ${q.photonEV.toFixed(3)} eV</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">W = ${p.W.toFixed(3)} eV</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">Kmax = ${q.maxKEEV.toFixed(3)} eV</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">${q.emitted?'電子放出あり':'しきい値未満'}</text>
+    `);
+  }
+
   const defs={
     kinematics:{
       name:'等加速度運動',
@@ -388,6 +456,34 @@
       defaults:{C:100,V:6,R:1000,mode:'charge'},
       render:renderCapacitor,
       verify:(p,t)=>api().verificationSummary(api().verifyCapacitor(api().deriveCapacitor({capacitanceMicroF:p.C,voltage:p.V,resistanceOhm:p.R,t,mode:p.mode})))
+    },
+    gas:{
+      name:'理想気体',
+      duration:p=>1,
+      defaults:{P:100,V:10,n:.4,T:300},
+      render:renderIdealGas,
+      verify:(p,t)=>api().verificationSummary(api().verifyIdealGas(api().deriveIdealGas({pressureKPa:p.P,volumeL:p.V,amountMol:p.n,temperatureK:p.T})))
+    },
+    faraday:{
+      name:'電磁誘導',
+      duration:p=>Math.max(.3,p.dt),
+      defaults:{N:100,A:.01,B0:0,B1:.5,dt:.2},
+      render:renderFaraday,
+      verify:(p,t)=>api().verificationSummary(api().verifyFaraday(api().deriveFaraday({turns:p.N,areaM2:p.A,b0T:p.B0,b1T:p.B1,dt:p.dt})))
+    },
+    lens:{
+      name:'薄レンズ',
+      duration:p=>1,
+      defaults:{f:20,u:60},
+      render:renderThinLens,
+      verify:(p,t)=>api().verificationSummary(api().verifyThinLens(api().deriveThinLens({focalLengthCm:p.f,objectDistanceCm:p.u})))
+    },
+    photoelectric:{
+      name:'光電効果',
+      duration:p=>1,
+      defaults:{f:8e14,W:2},
+      render:renderPhotoelectric,
+      verify:(p,t)=>api().verificationSummary(api().verifyPhotoelectric(api().derivePhotoelectric({frequencyHz:p.f,workFunctionEV:p.W})))
     }
   };
 
@@ -432,8 +528,20 @@
     if(type==='dc') return {
       V:Math.max(0,+$('psDCV').value||0),R1:Math.max(.01,+$('psR1').value||1),R2:Math.max(.01,+$('psR2').value||1),mode:$('psDCMode').value
     };
-    return {
+    if(type==='capacitor') return {
       C:Math.max(.001,+$('psCapC').value||100),V:Math.max(0,+$('psCapV').value||0),R:Math.max(.01,+$('psCapR').value||1000),mode:$('psCapMode').value
+    };
+    if(type==='gas') return {
+      P:Math.max(.001,+$('psGasP').value||100),V:Math.max(.001,+$('psGasV').value||10),n:Math.max(.0001,+$('psGasN').value||.4),T:Math.max(.1,+$('psGasT').value||300)
+    };
+    if(type==='faraday') return {
+      N:Math.max(1,Math.round(+$('psFarN').value||100)),A:Math.max(0,+$('psFarA').value||.01),B0:+$('psB0').value||0,B1:+$('psB1').value||0,dt:Math.max(.001,+$('psFarDt').value||.2)
+    };
+    if(type==='lens') return {
+      f:+$('psLensF').value||20,u:+$('psLensU').value||60
+    };
+    return {
+      f:Math.max(0,+$('psPhotoF').value||8e14),W:Math.max(0,+$('psPhotoW').value||2)
     };
   }
 
@@ -539,6 +647,10 @@
           <option value="standing">定常波</option>
           <option value="dc">直流回路</option>
           <option value="capacitor">コンデンサー・RC</option>
+          <option value="gas">理想気体</option>
+          <option value="faraday">電磁誘導</option>
+          <option value="lens">薄レンズ</option>
+          <option value="photoelectric">光電効果</option>
         </select>
       </div>
 
@@ -628,6 +740,31 @@
         <div class="field"><label>V</label><input id="psCapV" type="number" value="6" step="1"></div>
         <div class="field"><label>R (Ω)</label><input id="psCapR" type="number" value="1000" step="100"></div></div>
         <div class="field"><label>モード</label><select id="psCapMode"><option value="charge">充電</option><option value="discharge">放電</option></select></div>
+      </div>
+
+      <div data-sim-fields="gas" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>P (kPa)</label><input id="psGasP" type="number" value="100" step="5"></div>
+        <div class="field"><label>V (L)</label><input id="psGasV" type="number" value="10" step="0.5"></div></div>
+        <div class="physics-inline"><div class="field"><label>n (mol)</label><input id="psGasN" type="number" value="0.4" step="0.05"></div>
+        <div class="field"><label>T (K)</label><input id="psGasT" type="number" value="300" step="10"></div></div>
+      </div>
+
+      <div data-sim-fields="faraday" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>N</label><input id="psFarN" type="number" value="100" step="10"></div>
+        <div class="field"><label>A (m²)</label><input id="psFarA" type="number" value="0.01" step="0.005"></div></div>
+        <div class="physics-inline"><div class="field"><label>B₀ (T)</label><input id="psB0" type="number" value="0" step="0.1"></div>
+        <div class="field"><label>B₁ (T)</label><input id="psB1" type="number" value="0.5" step="0.1"></div>
+        <div class="field"><label>Δt (s)</label><input id="psFarDt" type="number" value="0.2" step="0.05"></div></div>
+      </div>
+
+      <div data-sim-fields="lens" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>f (cm)</label><input id="psLensF" type="number" value="20" step="1"></div>
+        <div class="field"><label>u (cm)</label><input id="psLensU" type="number" value="60" step="1"></div></div>
+      </div>
+
+      <div data-sim-fields="photoelectric" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>f (Hz)</label><input id="psPhotoF" type="number" value="800000000000000" step="10000000000000"></div>
+        <div class="field"><label>仕事関数 W (eV)</label><input id="psPhotoW" type="number" value="2" step="0.1"></div></div>
       </div>
 
       <div class="physics-inline" style="margin-top:8px">
