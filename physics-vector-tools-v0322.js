@@ -390,6 +390,103 @@
   }
 
 
+
+  function addAutoInclineAxes(slope, angle){
+    const cx=slope.x+slope.w*0.58;
+    const cy=slope.y+slope.h*0.40;
+    const len=95;
+    const rad=angle*Math.PI/180;
+
+    const p=addVector(cx,cy,cx+len*Math.cos(rad),cy-len*Math.sin(rad),{
+      color:'#64748b',label:'∥',kind:'componentVector',role:'axis',
+      caption:'斜面方向軸'
+    });
+    p.autoPhysicsRole='incline-axis-parallel';
+
+    const n=addVector(cx,cy,cx-len*Math.sin(rad),cy-len*Math.cos(rad),{
+      color:'#64748b',label:'⊥',kind:'componentVector',role:'axis',
+      caption:'斜面垂直方向軸'
+    });
+    n.autoPhysicsRole='incline-axis-normal';
+
+    for(const it of [p,n]){
+      it.physicsModel={kind:'incline-coordinate-axes',angleDeg:angle};
+    }
+    selectedId=slope.id;
+    state.activeInclineId=slope.id;
+    saveState();renderAll();
+  }
+
+  function addAutoInclineVectorsForRoles(roles){
+    const slope=activeIncline();
+    if(!slope) return false;
+    const api=physicsSkillStack();
+    if(!api) return false;
+
+    removeAutoInclineVectors();
+
+    const angle=clamp(+($('pvSlopeAngle')?.value||slope.physicsAngle||30),5,80);
+    const mass=clamp(+($('pvMassKg')?.value||1),0,10000);
+    const model=api.deriveInclineForces({massKg:mass,gravity:9.8,angleDeg:angle});
+    const q=model.quantities;
+
+    const cx=slope.x+slope.w*0.58;
+    const cy=slope.y+slope.h*0.40;
+    const scale=clamp(10/Math.max(q.weightN,1),0.7,8);
+    const rad=angle*Math.PI/180;
+
+    if(roles.includes('axes')) addAutoInclineAxes(slope,angle);
+
+    if(roles.includes('weight')){
+      const weight=addVector(cx,cy,cx,cy+q.weightN*scale,{
+        color:'#d62828',label:'mg',kind:'componentVector',role:'source',
+        caption:'重力 mg'
+      });
+      weight.autoPhysicsRole='incline-weight';
+      weight.physicsModel={kind:'incline-gravity-decomposition',angleDeg:angle,massKg:mass,gravity:9.8};
+    }
+
+    if(roles.includes('parallel')){
+      const l=q.parallelN*scale;
+      const parallel=addVector(cx,cy,cx-l*Math.cos(rad),cy+l*Math.sin(rad),{
+        color:'#2166d1',label:'mg sinθ',kind:'componentVector',role:'component',
+        caption:'斜面方向 mg sinθ'
+      });
+      parallel.autoPhysicsRole='incline-parallel';
+      parallel.physicsModel={kind:'incline-gravity-decomposition',angleDeg:angle,massKg:mass,gravity:9.8};
+    }
+
+    if(roles.includes('normal')){
+      const l=q.normalComponentN*scale;
+      const normal=addVector(cx,cy,cx+l*Math.sin(rad),cy+l*Math.cos(rad),{
+        color:'#e67e22',label:'mg cosθ',kind:'componentVector',role:'component',
+        caption:'斜面垂直方向 mg cosθ'
+      });
+      normal.autoPhysicsRole='incline-normal';
+      normal.physicsModel={kind:'incline-gravity-decomposition',angleDeg:angle,massKg:mass,gravity:9.8};
+    }
+
+    selectedId=slope.id;
+    state.activeInclineId=slope.id;
+    saveState();renderAll();
+    return true;
+  }
+
+  function syncDerivationVisuals(){
+    const slope=activeIncline();
+    if(!slope) return;
+    const rolesByStep=[
+      ['weight'],
+      ['weight','axes'],
+      ['weight','axes'],
+      ['weight','axes','parallel'],
+      ['weight','axes','parallel','normal'],
+      ['weight','axes','parallel','normal']
+    ];
+    const roles=rolesByStep[clamp(derivationState.step,0,rolesByStep.length-1)];
+    addAutoInclineVectorsForRoles(roles);
+  }
+
   const derivationState = { step: 0 };
 
   function inclineDerivationSteps(){
@@ -446,6 +543,7 @@
     const prev=$('pvDerivePrev'), next=$('pvDeriveNext');
     if(prev) prev.disabled=derivationState.step<=0;
     if(next) next.disabled=derivationState.step>=steps.length-1;
+    syncDerivationVisuals();
   }
 
   function stepInclineDerivation(delta){
@@ -542,21 +640,19 @@
 
     $('pvSlopeAngleRange').oninput=(e)=>{
       syncAngleControls(e.target.value);
-      refreshSelectedInclineFromControls({redrawVectors:true,quiet:true});
+      refreshSelectedInclineFromControls({redrawVectors:false,quiet:true});
       renderInclineDerivation();
       renderInclineDerivation();
     };
 
     $('pvSlopeAngle').oninput=(e)=>{
       syncAngleControls(e.target.value);
-      refreshSelectedInclineFromControls({redrawVectors:true,quiet:true});
+      refreshSelectedInclineFromControls({redrawVectors:false,quiet:true});
     };
 
     $('pvMassKg').oninput=()=>{
       updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
       renderInclineDerivation();
-      const hasAuto=items.some(it=>it?.autoPhysicsRole);
-      if(hasAuto) addAutoInclineVectors();
     };
     $('pvOverlapPick').onclick=()=>{
       state.overlapMode=!state.overlapMode;state.drawMode=false;removePreview();
