@@ -1019,14 +1019,24 @@ function updateSelectedText(){const it=items.find(x=>x.id===selectedId);if(!it||
 function resizeSelected(f){const it=items.find(x=>x.id===selectedId);if(!it)return;it.w=Math.max(80,it.w*f);it.h=Math.max(50,it.h*f);if(it.type==='text'||it.type==='math')it.size=Math.max(16,it.size*f);renderAll();saveState()}
 function svgDataUrl(svg){return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svg)))}
 function physicsSvg(kind){
- const angle=Math.max(5,Math.min(70,+(document.getElementById('physicsAngleInput')?.value||30)));
+ const angle=Math.max(5,Math.min(80,+(document.getElementById('physicsAngleInput')?.value||30)));
+ const rad=angle*Math.PI/180;
+ const slopeRun=Math.min(250,140/Math.max(Math.tan(rad),0.0001));
+ const slopeRise=slopeRun*Math.tan(rad);
+ const slopeX2=35+slopeRun;
+ const slopeY2=185-slopeRise;
+ const arcR=48;
+ const arcX=35+arcR*Math.cos(rad);
+ const arcY=185-arcR*Math.sin(rad);
+ const labelX=35+72*Math.cos(rad/2);
+ const labelY=185-72*Math.sin(rad/2);
  const label=escapeHtml((document.getElementById('physicsLabelInput')?.value||'m').trim()||'m');
  const head='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 220"><defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="#1f2937"/></marker></defs><g stroke="#1f2937" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round">';
  const tail='</g></svg>';
  const map={
   cart:`<rect x="70" y="80" width="150" height="70" rx="10" fill="#eef3f8"/><circle cx="105" cy="165" r="18" fill="#fff"/><circle cx="185" cy="165" r="18" fill="#fff"/><text x="145" y="124" text-anchor="middle" fill="#1f2937" stroke="none" font-size="34">${label}</text>`,
   block:`<rect x="95" y="55" width="130" height="120" rx="8" fill="#eef3f8"/><text x="160" y="128" text-anchor="middle" fill="#1f2937" stroke="none" font-size="38">${label}</text>`,
-  slope:`<path d="M35 185 H285 L285 55 Z" fill="#eef3f8"/><path d="M215 185 A70 70 0 0 0 203 145" stroke-width="3"/><text x="224" y="168" fill="#1f2937" stroke="none" font-size="26">${angle}°</text>`,
+  slope:`<path d="M35 185 H${slopeX2.toFixed(2)} L${slopeX2.toFixed(2)} ${slopeY2.toFixed(2)} Z" fill="#eef3f8"/><path d="M${(35+arcR).toFixed(2)} 185 A${arcR} ${arcR} 0 0 0 ${arcX.toFixed(2)} ${arcY.toFixed(2)}" stroke-width="3"/><text x="${labelX.toFixed(2)}" y="${labelY.toFixed(2)}" fill="#1f2937" stroke="none" font-size="24">${angle}°</text>`,
   weight:`<line x1="160" y1="20" x2="160" y2="75"/><rect x="110" y="75" width="100" height="110" rx="7" fill="#eef3f8"/><text x="160" y="142" text-anchor="middle" fill="#1f2937" stroke="none" font-size="36">${label}</text>`,
   fixedPulley:`<line x1="160" y1="10" x2="160" y2="55"/><circle cx="160" cy="105" r="50" fill="#fff"/><circle cx="160" cy="105" r="7" fill="#1f2937"/><path d="M110 105 V195 M210 105 V195"/>`,
   movablePulley:`<path d="M75 20 V115 A55 55 0 0 0 185 115 V20"/><circle cx="130" cy="115" r="48" fill="#fff"/><line x1="130" y1="163" x2="130" y2="205"/><rect x="95" y="182" width="70" height="28" fill="#eef3f8"/>`,
