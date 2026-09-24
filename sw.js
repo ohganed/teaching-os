@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teaching-os-v0.32.5-compact-physics-tabs-1';
+const CACHE_NAME = 'teaching-os-v0.32.6-physics-skill-stack-v1';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icon.svg',
@@ -6,7 +6,8 @@ const APP_SHELL = [
   './physics-vector-tools-v0322.js',
   './physics-rotation-v0323.js',
   './physics-mechanics-library-v0324.js',
-  './physics-compact-tabs-v0325.js'
+  './physics-compact-tabs-v0325.js',
+  './physics-skill-stack-v1.js'
 ];
 
 function injectTools(html) {
@@ -15,6 +16,7 @@ function injectTools(html) {
   const rotationTag = '<script src="./physics-rotation-v0323.js"></script>';
   const mechanicsTag = '<script src="./physics-mechanics-library-v0324.js"></script>';
   const compactTabsTag = '<script src="./physics-compact-tabs-v0325.js"></script>';
+  const physicsSkillStackTag = '<script src="./physics-skill-stack-v1.js"></script>';
 
   if (!html.includes('hotfix-v0321.js')) {
     const firstScript = html.indexOf('<script>');
@@ -26,7 +28,8 @@ function injectTools(html) {
     ['physics-vector-tools-v0322.js', physicsTag],
     ['physics-rotation-v0323.js', rotationTag],
     ['physics-mechanics-library-v0324.js', mechanicsTag],
-    ['physics-compact-tabs-v0325.js', compactTabsTag]
+    ['physics-compact-tabs-v0325.js', compactTabsTag],
+    ['physics-skill-stack-v1.js', physicsSkillStackTag]
   ]) {
     if (!html.includes(name)) {
       if (html.includes('</body>')) html = html.replace('</body>', tag + '\n</body>');
