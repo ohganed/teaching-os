@@ -241,6 +241,34 @@
     document.body.appendChild(menu);
   }
 
+  function physicsSkillStack(){
+    return window.TeachingOSPhysicsSkills || null;
+  }
+
+  function updateInclineSkillReadout(angle){
+    const api=physicsSkillStack();
+    const out=$('pvSkillReadout');
+    if(!out) return;
+    if(!api){
+      out.textContent='Physics Skill Stack: UNVERIFIED（まだ読み込まれていません）';
+      return;
+    }
+    const mass=clamp(+($('pvMassKg')?.value||1),0,10000);
+    const model=api.deriveInclineForces({massKg:mass,gravity:9.8,angleDeg:angle});
+    const checks=api.verifyInclineModel(model);
+    const summary=api.verificationSummary(checks);
+    const q=model.quantities;
+    const cfu=api.inclineCheckForUnderstanding(model);
+    out.innerHTML=
+      '<div><b>Physics Model</b> θ='+angle+'° / m='+mass+' kg</div>'+
+      '<div>mg = '+q.weightN.toFixed(2)+' N</div>'+
+      '<div>mg sinθ = '+q.parallelN.toFixed(2)+' N</div>'+
+      '<div>mg cosθ = '+q.normalComponentN.toFixed(2)+' N</div>'+
+      '<div><b>Verification: '+summary.result+'</b> ('+summary.passed+'/'+summary.total+')</div>'+
+      '<div style="margin-top:6px"><b>予測:</b> '+cfu.prompt+'</div>';
+    out.dataset.physicsResult=summary.result;
+  }
+
   function applySlopeAngle(){
     const it=items.find(x=>x.id===selectedId);
     if(!it || it.physicsKind!=='slope'){toastPhysics('角度を変える斜面を選択してください。',true);return;}
@@ -250,7 +278,8 @@
       it.src=svgDataUrl(physicsSvg('slope'));
       it.physicsAngle=angle;
       renderAll();saveState();
-      toastPhysics(`斜面を ${angle}° に変更しました。`);
+      updateInclineSkillReadout(angle);
+      toastPhysics(`斜面を ${angle}° に変更しました。Physics Modelも更新しました。`);
     }catch(e){toastPhysics('斜面角度を更新できませんでした。',true);}
   }
 
@@ -288,8 +317,10 @@
         <h2 style="margin-top:8px">斜面・重なり操作</h2>
         <div class="physics-inline">
           <div class="field"><label>選択斜面の角度</label><input id="pvSlopeAngle" type="number" min="5" max="80" value="30"></div>
+          <div class="field"><label>質量 m (kg)</label><input id="pvMassKg" type="number" min="0" step="0.1" value="1"></div>
           <button class="btn" id="pvApplySlope">角度を適用</button>
         </div>
+        <div id="pvSkillReadout" class="physics-note">Physics Skill Stack: 斜面を選択して角度を適用すると、モデル・検証・予測問題を表示します。</div>
         <div class="physics-inline">
           <button class="btn small" id="pvLayerDown">一段 後ろ</button>
           <button class="btn small" id="pvLayerUp">一段 前</button>
@@ -304,6 +335,8 @@
     $('pvResultant').onclick=makeResultant;
     $('pvDecompose').onclick=decomposeForce;
     $('pvApplySlope').onclick=applySlopeAngle;
+    $('pvMassKg').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
+    $('pvSlopeAngle').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
     $('pvOverlapPick').onclick=()=>{
       state.overlapMode=!state.overlapMode;state.drawMode=false;removePreview();
       $('pvOverlapPick').classList.toggle('primary',state.overlapMode);
