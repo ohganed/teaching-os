@@ -306,6 +306,173 @@
     ];
   }
 
+
+  function deriveFriction({massKg=1,forceN=5,muS=0.4,muK=0.3,gravity=9.8}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const F=Number(forceN)||0;
+    const mus=Math.max(0,Number(muS)||0);
+    const muk=Math.max(0,Number(muK)||0);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const N=m*g;
+    const fsMax=mus*N;
+    const moving=Math.abs(F)>fsMax;
+    const friction=moving?muk*N:Math.abs(F);
+    const direction=F===0?0:-Math.sign(F);
+    const net=moving?F+direction*friction:0;
+    const a=net/m;
+    return {
+      phenomenon:'水平面上の摩擦を受ける物体',
+      givens:{massKg:m,forceN:F,muS:mus,muK:muk,gravity:g},
+      principle:'静止摩擦は必要量まで、最大値を超えると動摩擦へ移る',
+      quantities:{normalN:N,staticMaxN:fsMax,frictionN:friction,netForceN:net,acceleration:a,moving}
+    };
+  }
+
+  function verifyFriction(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('fric-normal','水平面ではN=mg','vertical force balance','numeric equality',
+        nearlyEqual(q.normalN,g.massKg*g.gravity)),
+      makeCheck('fric-static-max','最大静止摩擦=μsN','static friction limit','numeric equality',
+        nearlyEqual(q.staticMaxN,g.muS*q.normalN)),
+      makeCheck('fric-motion','静止中は合力0','static equilibrium','state check',
+        q.moving || nearlyEqual(q.netForceN,0))
+    ];
+  }
+
+  function deriveAtwood({m1=2,m2=1,gravity=9.8}={}){
+    const a1=Math.max(0.0001,Number(m1)||1);
+    const a2=Math.max(0.0001,Number(m2)||1);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const acc=(a1-a2)*g/(a1+a2);
+    const tension=2*a1*a2*g/(a1+a2);
+    return {
+      phenomenon:'理想的なアトウッドの装置',
+      givens:{m1:a1,m2:a2,gravity:g},
+      principle:'2物体を1つの系として運動方程式を立てる',
+      quantities:{acceleration:acc,tensionN:tension}
+    };
+  }
+
+  function verifyAtwood(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('atwood-a','a=(m1-m2)g/(m1+m2)','system Newton equation','numeric equality',
+        nearlyEqual(q.acceleration,(g.m1-g.m2)*g.gravity/(g.m1+g.m2))),
+      makeCheck('atwood-t','T=2m1m2g/(m1+m2)','single-body Newton equation','numeric equality',
+        nearlyEqual(q.tensionN,2*g.m1*g.m2*g.gravity/(g.m1+g.m2)))
+    ];
+  }
+
+  function deriveEnergyTrack({massKg=1,height=2,speed0=0,gravity=9.8,heightAt=0}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const h0=Math.max(0,Number(height)||0);
+    const v0=Math.max(0,Number(speed0)||0);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const h=clamp(Number(heightAt)||0,0,h0);
+    const total=m*g*h0+0.5*m*v0*v0;
+    const potential=m*g*h;
+    const kinetic=Math.max(0,total-potential);
+    const speed=Math.sqrt(2*kinetic/m);
+    return {
+      phenomenon:'摩擦なしの力学的エネルギー保存',
+      givens:{massKg:m,height:h0,speed0:v0,gravity:g,heightAt:h},
+      principle:'K+U=constant',
+      quantities:{totalEnergy:total,potentialEnergy:potential,kineticEnergy:kinetic,speed}
+    };
+  }
+
+  function verifyEnergyTrack(model){
+    const q=model.quantities;
+    return [
+      makeCheck('energy-total','K+U=E','mechanical energy conservation','numeric equality',
+        nearlyEqual(q.kineticEnergy+q.potentialEnergy,q.totalEnergy))
+    ];
+  }
+
+  function deriveStandingWave({length=1,harmonic=1,waveSpeed=100}={}){
+    const L=Math.max(0.0001,Number(length)||1);
+    const n=Math.max(1,Math.round(Number(harmonic)||1));
+    const v=Math.max(0.0001,Number(waveSpeed)||100);
+    const wavelength=2*L/n;
+    const frequency=v/wavelength;
+    return {
+      phenomenon:'両端固定弦の定常波',
+      givens:{length:L,harmonic:n,waveSpeed:v},
+      principle:'L=nλ/2',
+      quantities:{wavelength,frequency,nodes:n+1,antinodes:n}
+    };
+  }
+
+  function verifyStandingWave(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('stand-lambda','λ=2L/n','fixed-end boundary condition','numeric equality',
+        nearlyEqual(q.wavelength,2*g.length/g.harmonic)),
+      makeCheck('stand-f','f=v/λ','wave speed relation','numeric equality',
+        nearlyEqual(q.frequency,g.waveSpeed/q.wavelength))
+    ];
+  }
+
+  function deriveDCCircuit({voltage=6,r1=10,r2=20,mode='series'}={}){
+    const V=Math.max(0,Number(voltage)||0);
+    const R1=Math.max(0.0001,Number(r1)||1);
+    const R2=Math.max(0.0001,Number(r2)||1);
+    const parallel=mode==='parallel';
+    const Req=parallel?1/(1/R1+1/R2):R1+R2;
+    const Itotal=V/Req;
+    const i1=parallel?V/R1:Itotal;
+    const i2=parallel?V/R2:Itotal;
+    const v1=parallel?V:i1*R1;
+    const v2=parallel?V:i2*R2;
+    return {
+      phenomenon:parallel?'抵抗2本の並列回路':'抵抗2本の直列回路',
+      givens:{voltage:V,r1:R1,r2:R2,mode},
+      principle:'Ohmの法則 + 直列/並列の電流・電圧条件',
+      quantities:{equivalentResistance:Req,totalCurrent:Itotal,i1,i2,v1,v2}
+    };
+  }
+
+  function verifyDCCircuit(model){
+    const g=model.givens,q=model.quantities;
+    const parallel=g.mode==='parallel';
+    return [
+      makeCheck('dc-ohm','V=IR','Ohm law','numeric equality',
+        nearlyEqual(g.voltage,q.totalCurrent*q.equivalentResistance)),
+      makeCheck('dc-topology',parallel?'並列では各枝の電圧が等しい':'直列では各抵抗の電流が等しい',
+        'circuit topology','numeric equality',
+        parallel?nearlyEqual(q.v1,q.v2):nearlyEqual(q.i1,q.i2))
+    ];
+  }
+
+  function deriveCapacitor({capacitanceMicroF=100,voltage=6,resistanceOhm=1000,t=0,mode='charge'}={}){
+    const C=Math.max(0.000000001,(Number(capacitanceMicroF)||0)*1e-6);
+    const V=Math.max(0,Number(voltage)||0);
+    const R=Math.max(0.0001,Number(resistanceOhm)||1);
+    const tt=Math.max(0,Number(t)||0);
+    const tau=R*C;
+    const chargeMode=mode!=='discharge';
+    const vc=chargeMode?V*(1-Math.exp(-tt/tau)):V*Math.exp(-tt/tau);
+    const current=chargeMode?(V/R)*Math.exp(-tt/tau):-(V/R)*Math.exp(-tt/tau);
+    const charge=C*vc;
+    return {
+      phenomenon:chargeMode?'RC充電':'RC放電',
+      givens:{capacitanceF:C,voltage:V,resistanceOhm:R,t:tt,mode},
+      principle:'RC回路の指数関数応答',
+      quantities:{timeConstant:tau,capacitorVoltage:vc,current,charge}
+    };
+  }
+
+  function verifyCapacitor(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('rc-tau','τ=RC','RC time constant','numeric equality',
+        nearlyEqual(q.timeConstant,g.resistanceOhm*g.capacitanceF)),
+      makeCheck('rc-q','Q=CV','capacitor definition','numeric equality',
+        nearlyEqual(q.charge,g.capacitanceF*q.capacitorVoltage))
+    ];
+  }
+
   // -----------------------------
   // 2. Verification Layer
   // -----------------------------
@@ -497,7 +664,13 @@
       deriveCollision,
       derivePendulum,
       deriveWave,
-      deriveElectricField
+      deriveElectricField,
+      deriveFriction,
+      deriveAtwood,
+      deriveEnergyTrack,
+      deriveStandingWave,
+      deriveDCCircuit,
+      deriveCapacitor
     },
     'physics-verification': {
       verifyInclineModel,
@@ -509,6 +682,12 @@
       verifyPendulum,
       verifyWave,
       verifyElectricField,
+      verifyFriction,
+      verifyAtwood,
+      verifyEnergyTrack,
+      verifyStandingWave,
+      verifyDCCircuit,
+      verifyCapacitor,
       verificationSummary,
       registerVerificationAdapter,
       verifyWithAdapter
@@ -541,6 +720,12 @@
     derivePendulum,
     deriveWave,
     deriveElectricField,
+    deriveFriction,
+    deriveAtwood,
+    deriveEnergyTrack,
+    deriveStandingWave,
+    deriveDCCircuit,
+    deriveCapacitor,
     verifyInclineModel,
     verifyKinematics,
     verifyProjectile,
@@ -550,6 +735,12 @@
     verifyPendulum,
     verifyWave,
     verifyElectricField,
+    verifyFriction,
+    verifyAtwood,
+    verifyEnergyTrack,
+    verifyStandingWave,
+    verifyDCCircuit,
+    verifyCapacitor,
     verificationSummary,
     inclineVisualizationSpec,
     buildInclineLessonDesign,
