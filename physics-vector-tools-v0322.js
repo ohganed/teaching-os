@@ -283,6 +283,75 @@
     }catch(e){toastPhysics('斜面角度を更新できませんでした。',true);}
   }
 
+
+  function removeAutoInclineVectors(){
+    const before=items.length;
+    items=items.filter(it=>!it?.autoPhysicsRole);
+    if(items.length!==before){renderAll();saveState();}
+  }
+
+  function addAutoInclineVectors(){
+    const slope=items.find(x=>x.id===selectedId && x.physicsKind==='slope');
+    if(!slope){toastPhysics('自動分力を表示する斜面を選択してください。',true);return;}
+    const api=physicsSkillStack();
+    if(!api){toastPhysics('Physics Skill Stack が読み込まれていません。',true);return;}
+
+    removeAutoInclineVectors();
+
+    const angle=clamp(+($('pvSlopeAngle')?.value||slope.physicsAngle||30),5,80);
+    const mass=clamp(+($('pvMassKg')?.value||1),0,10000);
+    const model=api.deriveInclineForces({massKg:mass,gravity:9.8,angleDeg:angle});
+    const q=model.quantities;
+
+    const cx=slope.x+slope.w*0.58;
+    const cy=slope.y+slope.h*0.40;
+    const scale=clamp(10/Math.max(q.weightN,1),0.7,8);
+
+    const weightLen=q.weightN*scale;
+    const parallelLen=q.parallelN*scale;
+    const normalLen=q.normalComponentN*scale;
+    const rad=angle*Math.PI/180;
+
+    const created=[];
+
+    const weight=addVector(cx,cy,cx,cy+weightLen,{
+      color:'#d62828',label:'mg',kind:'componentVector',role:'source',
+      caption:'重力 mg'
+    });
+    weight.autoPhysicsRole='incline-weight';
+    created.push(weight);
+
+    const px=cx-parallelLen*Math.cos(rad);
+    const py=cy+parallelLen*Math.sin(rad);
+    const parallel=addVector(cx,cy,px,py,{
+      color:'#2166d1',label:'mg sinθ',kind:'componentVector',role:'component',
+      caption:'斜面方向 mg sinθ'
+    });
+    parallel.autoPhysicsRole='incline-parallel';
+    created.push(parallel);
+
+    const nx=cx+normalLen*Math.sin(rad);
+    const ny=cy+normalLen*Math.cos(rad);
+    const normal=addVector(cx,cy,nx,ny,{
+      color:'#e67e22',label:'mg cosθ',kind:'componentVector',role:'component',
+      caption:'斜面垂直方向 mg cosθ'
+    });
+    normal.autoPhysicsRole='incline-normal';
+    created.push(normal);
+
+    for(const it of created){
+      it.physicsModel={
+        kind:'incline-gravity-decomposition',
+        angleDeg:angle,
+        massKg:mass,
+        gravity:9.8
+      };
+    }
+
+    saveState();renderAll();
+    toastPhysics('Physics Modelから mg / mg sinθ / mg cosθ を自動描画しました。');
+  }
+
   function toastPhysics(msg,error=false){
     const n=$('pvStatus'); if(!n)return;
     n.textContent=msg;n.style.color=error?'#ffb4b4':'#bfe0ff';
@@ -322,6 +391,10 @@
         </div>
         <div id="pvSkillReadout" class="physics-note">Physics Skill Stack: 斜面を選択して角度を適用すると、モデル・検証・予測問題を表示します。</div>
         <div class="physics-inline">
+          <button class="btn primary" id="pvAutoInclineVectors">⚙ モデルから分力を描画</button>
+          <button class="btn small" id="pvClearAutoInclineVectors">自動分力を消す</button>
+        </div>
+        <div class="physics-inline">
           <button class="btn small" id="pvLayerDown">一段 後ろ</button>
           <button class="btn small" id="pvLayerUp">一段 前</button>
           <button class="btn small" id="pvLayerBottom">最背面</button>
@@ -335,6 +408,8 @@
     $('pvResultant').onclick=makeResultant;
     $('pvDecompose').onclick=decomposeForce;
     $('pvApplySlope').onclick=applySlopeAngle;
+    $('pvAutoInclineVectors').onclick=addAutoInclineVectors;
+    $('pvClearAutoInclineVectors').onclick=removeAutoInclineVectors;
     $('pvMassKg').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
     $('pvSlopeAngle').oninput=()=>updateInclineSkillReadout(clamp(+($('pvSlopeAngle')?.value||30),5,80));
     $('pvOverlapPick').onclick=()=>{
