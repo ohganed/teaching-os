@@ -186,6 +186,126 @@
     ];
   }
 
+
+  function deriveCollision({m1=1,m2=1,u1=2,u2=0,restitution=1}={}){
+    const a=Math.max(0.0001,Number(m1)||1);
+    const b=Math.max(0.0001,Number(m2)||1);
+    const e=clamp(Number(restitution)||0,0,1);
+    const v1i=Number(u1)||0, v2i=Number(u2)||0;
+    const v1=((a-e*b)*v1i+(1+e)*b*v2i)/(a+b);
+    const v2=((1+e)*a*v1i+(b-e*a)*v2i)/(a+b);
+    const pBefore=a*v1i+b*v2i;
+    const pAfter=a*v1+b*v2;
+    const kBefore=0.5*a*v1i*v1i+0.5*b*v2i*v2i;
+    const kAfter=0.5*a*v1*v1+0.5*b*v2*v2;
+    return {
+      phenomenon:'1次元衝突',
+      givens:{m1:a,m2:b,u1:v1i,u2:v2i,restitution:e},
+      principle:'運動量保存 + 反発係数',
+      quantities:{v1,v2,pBefore,pAfter,kBefore,kAfter}
+    };
+  }
+
+  function verifyCollision(model){
+    const q=model.quantities;
+    return [
+      makeCheck('col-momentum','衝突前後で全運動量が等しい','isolated system momentum conservation','numeric equality',
+        nearlyEqual(q.pBefore,q.pAfter)),
+      makeCheck('col-energy-bound','e≤1 なら衝突後の運動エネルギーは増えない','coefficient of restitution bound','numeric inequality',
+        q.kAfter<=q.kBefore+1e-9),
+      makeCheck('col-elastic','e=1 なら運動エネルギー保存','elastic collision','numeric equality',
+        model.givens.restitution!==1 || nearlyEqual(q.kBefore,q.kAfter))
+    ];
+  }
+
+  function derivePendulum({length=1,gravity=9.8,amplitudeDeg=10,t=0}={}){
+    const L=Math.max(0.0001,Number(length)||1);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const amp=clamp(Number(amplitudeDeg)||0,0,30)*Math.PI/180;
+    const tt=Math.max(0,Number(t)||0);
+    const omega=Math.sqrt(g/L);
+    const theta=amp*Math.cos(omega*tt);
+    const angularVelocity=-amp*omega*Math.sin(omega*tt);
+    const period=2*Math.PI*Math.sqrt(L/g);
+    return {
+      phenomenon:'小振幅単振り子',
+      givens:{length:L,gravity:g,amplitudeDeg:Number(amplitudeDeg)||0,t:tt},
+      principle:'small-angle approximation: sinθ≈θ → θ¨=-(g/L)θ',
+      quantities:{omega,theta,angularVelocity,period}
+    };
+  }
+
+  function verifyPendulum(model){
+    const {length:L,gravity:g}=model.givens;
+    const q=model.quantities;
+    return [
+      makeCheck('pen-omega','ω²=g/L','small-angle equation','numeric equality',
+        nearlyEqual(q.omega*q.omega,g/L)),
+      makeCheck('pen-period','T=2π√(L/g)','small-angle pendulum period','numeric equality',
+        nearlyEqual(q.period,2*Math.PI*Math.sqrt(L/g)))
+    ];
+  }
+
+  function deriveWave({amplitude=1,wavelength=2,frequency=1,x=0,t=0,phase=0}={}){
+    const A=Math.max(0,Number(amplitude)||0);
+    const lambda=Math.max(0.0001,Number(wavelength)||2);
+    const f=Math.max(0,Number(frequency)||0);
+    const xx=Number(x)||0, tt=Math.max(0,Number(t)||0), phi=Number(phase)||0;
+    const k=2*Math.PI/lambda;
+    const omega=2*Math.PI*f;
+    const speed=f*lambda;
+    const y=A*Math.sin(k*xx-omega*tt+phi);
+    return {
+      phenomenon:'正弦進行波',
+      givens:{amplitude:A,wavelength:lambda,frequency:f,x:xx,t:tt,phase:phi},
+      principle:'y=A sin(kx-ωt+φ), k=2π/λ, ω=2πf',
+      quantities:{k,omega,speed,y}
+    };
+  }
+
+  function verifyWave(model){
+    const g=model.givens, q=model.quantities;
+    return [
+      makeCheck('wave-k','k=2π/λ','wave number definition','numeric equality',
+        nearlyEqual(q.k,2*Math.PI/g.wavelength)),
+      makeCheck('wave-omega','ω=2πf','angular frequency definition','numeric equality',
+        nearlyEqual(q.omega,2*Math.PI*g.frequency)),
+      makeCheck('wave-speed','v=fλ','phase velocity','numeric equality',
+        nearlyEqual(q.speed,g.frequency*g.wavelength))
+    ];
+  }
+
+  function deriveElectricField({sourceChargeMicroC=1,testX=1,testY=0,k=8.9875517923e9}={}){
+    const Q=(Number(sourceChargeMicroC)||0)*1e-6;
+    const x=Number(testX)||0, y=Number(testY)||0;
+    const r=Math.max(0.0001,Math.hypot(x,y));
+    const kk=Math.max(0,Number(k)||8.9875517923e9);
+    const magnitude=kk*Math.abs(Q)/(r*r);
+    const sign=Q>=0?1:-1;
+    const ex=sign*magnitude*x/r;
+    const ey=sign*magnitude*y/r;
+    const potential=kk*Q/r;
+    return {
+      phenomenon:'点電荷が作る電場と電位',
+      givens:{sourceChargeC:Q,testX:x,testY:y,k:kk},
+      principle:'E=k|Q|/r², V=kQ/r',
+      quantities:{r,magnitude,ex,ey,potential}
+    };
+  }
+
+  function verifyElectricField(model){
+    const g=model.givens,q=model.quantities;
+    const mag=Math.hypot(q.ex,q.ey);
+    return [
+      makeCheck('ef-mag','|E|=k|Q|/r²','Coulomb field','numeric equality',
+        nearlyEqual(q.magnitude,g.k*Math.abs(g.sourceChargeC)/(q.r*q.r))),
+      makeCheck('ef-components','√(Ex²+Ey²)=|E|','vector components','numeric equality',
+        nearlyEqual(mag,q.magnitude)),
+      makeCheck('ef-potential','V=kQ/r','point-charge potential','numeric equality',
+        nearlyEqual(q.potential,g.k*g.sourceChargeC/q.r))
+    ];
+  }
+
   // -----------------------------
   // 2. Verification Layer
   // -----------------------------
@@ -373,7 +493,11 @@
       deriveKinematics,
       deriveProjectile,
       deriveSpring,
-      deriveCircular
+      deriveCircular,
+      deriveCollision,
+      derivePendulum,
+      deriveWave,
+      deriveElectricField
     },
     'physics-verification': {
       verifyInclineModel,
@@ -381,6 +505,10 @@
       verifyProjectile,
       verifySpring,
       verifyCircular,
+      verifyCollision,
+      verifyPendulum,
+      verifyWave,
+      verifyElectricField,
       verificationSummary,
       registerVerificationAdapter,
       verifyWithAdapter
@@ -409,11 +537,19 @@
     deriveProjectile,
     deriveSpring,
     deriveCircular,
+    deriveCollision,
+    derivePendulum,
+    deriveWave,
+    deriveElectricField,
     verifyInclineModel,
     verifyKinematics,
     verifyProjectile,
     verifySpring,
     verifyCircular,
+    verifyCollision,
+    verifyPendulum,
+    verifyWave,
+    verifyElectricField,
     verificationSummary,
     inclineVisualizationSpec,
     buildInclineLessonDesign,
