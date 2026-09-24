@@ -277,6 +277,7 @@
     try{
       it.src=svgDataUrl(physicsSvg('slope'));
       it.physicsAngle=angle;
+      removeAutoInclineVectors();
       renderAll();saveState();
       updateInclineSkillReadout(angle);
       toastPhysics(`斜面を ${angle}° に変更しました。Physics Modelも更新しました。`);
