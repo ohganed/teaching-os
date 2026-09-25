@@ -745,7 +745,7 @@
     items.push(it); selectedId=it.id;
     state.active={type,itemId:it.id,params:p};
     state.elapsed=0; state.startTime=0; state.running=false;
-    renderAll(); saveState(); renderActive(); updateButtons(); renderExam();
+    renderAll(); saveState(); renderActive(); updateButtons(); renderExam(); renderMechanicsProblem();
   }
 
   function updateActiveParams(){
@@ -754,6 +754,7 @@
     state.elapsed=0; state.startTime=0;
     renderActive();
     renderExam();
+    renderMechanicsProblem();
   }
 
   function showFields(type){
@@ -854,6 +855,129 @@
       reveal:p=>'PV=nRT より P∝T。絶対温度に比例して増える。'
     }
   };
+
+
+  const mechanicsProblemBank = {
+    kinematics: p => ({
+      title:'等加速度運動',
+      givens:[`初速度 v₀=${p.v0} m/s`,`加速度 a=${p.a} m/s²`,`初期位置 x₀=${p.x0} m`],
+      target:'3.0 s 後の位置と速度',
+      principle:'等加速度運動',
+      plan:'v=v₀+at と x=x₀+v₀t+(1/2)at² を使う',
+      solve:()=>{
+        const m=api().deriveKinematics({...p,t:3});
+        return `v=${m.quantities.v.toFixed(2)} m/s, x=${m.quantities.x.toFixed(2)} m`;
+      }
+    }),
+    projectile: p => ({
+      title:'斜方投射',
+      givens:[`初速度 ${p.speed} m/s`,`投射角 ${p.angle}°`,`重力加速度 ${p.g} m/s²`],
+      target:'1.0 s 後の位置と速度成分',
+      principle:'水平は等速、鉛直は等加速度',
+      plan:'初速度をx,y成分に分けて別々に運動方程式を使う',
+      solve:()=>{
+        const m=api().deriveProjectile({speed:p.speed,angleDeg:p.angle,height0:p.height0,gravity:p.g,t:1});
+        const q=m.quantities;
+        return `x=${q.x.toFixed(2)} m, y=${q.y.toFixed(2)} m, vx=${q.vx.toFixed(2)} m/s, vy=${q.vy.toFixed(2)} m/s`;
+      }
+    }),
+    inclineFriction: p => ({
+      title:'斜面上の物体と摩擦',
+      givens:[`m=${p.m} kg`,`θ=${p.angle}°`,`μs=${p.muS}`,`μk=${p.muK}`],
+      target:'物体が静止するか、滑るなら加速度',
+      principle:'重力分解 + 摩擦 + 運動方程式',
+      plan:'mg sinθ と最大静止摩擦 μs mg cosθ を比較する',
+      solve:()=>{
+        const m=api().deriveInclineFriction({massKg:p.m,angleDeg:p.angle,muS:p.muS,muK:p.muK,gravity:p.g,appliedAlongSlopeN:p.F});
+        const q=m.quantities;
+        return q.moving?`滑る。a=${q.acceleration.toFixed(2)} m/s²`:'静止できる';
+      }
+    }),
+    twoBlock: p => ({
+      title:'2物体連結',
+      givens:[`m₁=${p.m1} kg`,`m₂=${p.m2} kg`,`外力 F=${p.F} N`,`μ=${p.mu}`],
+      target:'系の加速度と張力',
+      principle:'系全体の運動方程式 + 1物体の運動方程式',
+      plan:'先に全体系でaを求め、その後m₂だけを見る',
+      solve:()=>{
+        const m=api().deriveTwoBlock({m1:p.m1,m2:p.m2,forceN:p.F,mu:p.mu,gravity:p.g});
+        return `a=${m.quantities.acceleration.toFixed(2)} m/s², T=${m.quantities.tensionN.toFixed(2)} N`;
+      }
+    }),
+    verticalCircle: p => ({
+      title:'鉛直円運動',
+      givens:[`半径 r=${p.r} m`,`底での速さ v₀=${p.v0} m/s`,`質量 m=${p.m} kg`],
+      target:'頂点での速さと張力',
+      principle:'力学的エネルギー保存 + 半径方向の運動方程式',
+      plan:'底→頂点でエネルギー保存、その後頂点で向心方向の式を立てる',
+      solve:()=>{
+        const m=api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:180});
+        return `v(top)=${m.quantities.speed.toFixed(2)} m/s, T(top)=${m.quantities.tensionN.toFixed(2)} N`;
+      }
+    }),
+    collision: p => ({
+      title:'1次元衝突',
+      givens:[`m₁=${p.m1} kg`,`m₂=${p.m2} kg`,`u₁=${p.u1} m/s`,`u₂=${p.u2} m/s`,`e=${p.e}`],
+      target:'衝突後の速度 v₁, v₂',
+      principle:'運動量保存 + 反発係数',
+      plan:'2本の式を連立する',
+      solve:()=>{
+        const m=api().deriveCollision({m1:p.m1,m2:p.m2,u1:p.u1,u2:p.u2,restitution:p.e});
+        return `v₁=${m.quantities.v1.toFixed(2)} m/s, v₂=${m.quantities.v2.toFixed(2)} m/s`;
+      }
+    }),
+    impulse: p => ({
+      title:'力積と運動量',
+      givens:[`m=${p.m} kg`,`初速度 ${p.u} m/s`,`力 F=${p.F} N`,`作用時間 ${p.dt} s`],
+      target:'力積と終速度',
+      principle:'J=FΔt=Δp',
+      plan:'まず力積Jを求め、Δp=m(v-u)と結ぶ',
+      solve:()=>{
+        const m=api().deriveImpulse({massKg:p.m,initialVelocity:p.u,forceN:p.F,durationS:p.dt});
+        return `J=${m.quantities.impulseNs.toFixed(2)} N·s, v=${m.quantities.finalVelocity.toFixed(2)} m/s`;
+      }
+    }),
+    shmEnergy: p => ({
+      title:'ばね単振動のエネルギー',
+      givens:[`m=${p.m} kg`,`k=${p.k} N/m`,`振幅 A=${p.A} m`],
+      target:'x=A/2 における速さ',
+      principle:'単振動の力学的エネルギー保存',
+      plan:'E=(1/2)kA², U=(1/2)kx², K=E-U',
+      solve:()=>{
+        const m=api().deriveSHMEnergy({massKg:p.m,springConstant:p.k,amplitude:p.A,position:p.A/2});
+        return `v=${m.quantities.speed.toFixed(3)} m/s`;
+      }
+    })
+  };
+
+  function currentMechanicsProblem(){
+    if(!state.active) return null;
+    const make=mechanicsProblemBank[state.active.type];
+    return make ? make(state.active.params) : null;
+  }
+
+  function renderMechanicsProblem(){
+    const box=$('psMechanicsProblem');
+    if(!box) return;
+    const p=currentMechanicsProblem();
+    if(!p){
+      box.innerHTML='<div class="physics-note">このシミュレーターは力学問題ジェネレータ対象外です。</div>';
+      return;
+    }
+    box.innerHTML=
+      '<div style="font-weight:900">'+p.title+'</div>'+
+      '<div style="margin-top:6px"><b>条件</b>: '+p.givens.join(' / ')+'</div>'+
+      '<div style="margin-top:6px"><b>求める量</b>: '+p.target+'</div>'+
+      '<div class="physics-inline" style="margin-top:8px">'+
+      '<button class="btn small" id="psShowPrinciple">原理を見る</button>'+
+      '<button class="btn small" id="psShowPlan">方針を見る</button>'+
+      '<button class="btn small" id="psShowSolution">答えを見る</button>'+
+      '</div>'+
+      '<div id="psProblemReveal" class="physics-note" style="margin-top:8px">まず条件から解法を考えてください。</div>';
+    $('psShowPrinciple').onclick=()=>{$('psProblemReveal').textContent='使う原理: '+p.principle;};
+    $('psShowPlan').onclick=()=>{$('psProblemReveal').textContent='解法方針: '+p.plan;};
+    $('psShowSolution').onclick=()=>{$('psProblemReveal').textContent='答え: '+p.solve();};
+  }
 
   function currentExam(){
     return state.active ? examBank[state.active.type] || null : null;
@@ -1077,6 +1201,10 @@
         <button class="btn small" id="psReset">↺ リセット</button>
       </div>
       <details open style="margin-top:10px">
+        <summary style="font-weight:800;cursor:pointer">🧠 Mechanics Problem Generator</summary>
+        <div id="psMechanicsProblem" style="margin-top:8px"><div class="physics-note">力学シミュレーターを追加すると問題を生成します。</div></div>
+      </details>
+      <details open style="margin-top:10px">
         <summary style="font-weight:800;cursor:pointer">🎯 Exam Mode</summary>
         <div id="psExamBox" style="margin-top:8px"><div class="physics-note">Student Viewへ追加すると典型問題を出します。</div></div>
       </details>
@@ -1092,6 +1220,7 @@
     panel.querySelectorAll('select').forEach(sel=>{ if(sel.id!=='psType') sel.addEventListener('change',updateActiveParams); });
     showFields($('psType').value);
     renderExam();
+    renderMechanicsProblem();
   }
 
   function boot(){
