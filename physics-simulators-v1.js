@@ -745,7 +745,7 @@
     items.push(it); selectedId=it.id;
     state.active={type,itemId:it.id,params:p};
     state.elapsed=0; state.startTime=0; state.running=false;
-    renderAll(); saveState(); renderActive(); updateButtons(); renderExam(); renderMechanicsProblem();
+    renderAll(); saveState(); renderActive(); updateButtons(); renderExam(); renderMechanicsProblem(); renderMechanicsReading();
   }
 
   function updateActiveParams(){
@@ -755,6 +755,7 @@
     renderActive();
     renderExam();
     renderMechanicsProblem();
+    renderMechanicsReading();
   }
 
   function showFields(type){
@@ -949,6 +950,101 @@
       }
     })
   };
+
+
+  const mechanicsReadingBank = {
+    kinematics: p => ({
+      stem:`一直線上を運動する物体がある。時刻0で位置${p.x0} m、速度${p.v0} m/sであり、その後一定の加速度${p.a} m/s²で運動する。3.0 s後の位置と速度を求めよ。`,
+      givens:['初期位置 x₀','初速度 v₀','一定加速度 a','時間 t=3.0 s'],
+      target:'3.0 s後の位置 x と速度 v',
+      system:'物体1個',
+      axes:'運動方向を正方向',
+      principles:['等加速度運動','v=v₀+at','x=x₀+v₀t+(1/2)at²']
+    }),
+    projectile: p => ({
+      stem:`地面から速さ${p.speed} m/s、水平となす角${p.angle}°で小球を投げ上げた。空気抵抗は無視し、重力加速度を${p.g} m/s²とする。1.0 s後の位置と速度成分を求めよ。`,
+      givens:['初速度の大きさ','投射角','重力加速度','時間'],
+      target:'位置 x,y と速度成分 vx,vy',
+      system:'小球1個',
+      axes:'水平x軸・鉛直上向きy軸',
+      principles:['水平は等速運動','鉛直は等加速度運動','初速度を成分分解']
+    }),
+    inclineFriction: p => ({
+      stem:`質量${p.m} kgの物体を傾斜角${p.angle}°の粗い斜面上に静かに置く。静止摩擦係数は${p.muS}、動摩擦係数は${p.muK}である。物体が静止するか判定し、滑る場合は加速度を求めよ。`,
+      givens:['質量 m','傾斜角 θ','静止摩擦係数 μs','動摩擦係数 μk'],
+      target:'静止/運動の判定、滑るなら加速度',
+      system:'斜面上の物体1個',
+      axes:'斜面方向・斜面に垂直方向',
+      principles:['重力の成分分解','最大静止摩擦 μsN','運動時は動摩擦 μkN','斜面方向の運動方程式']
+    }),
+    twoBlock: p => ({
+      stem:`質量${p.m1} kgと${p.m2} kgの2物体を軽い糸でつなぎ、水平面上で外力${p.F} Nを加える。物体と面の間の動摩擦係数を${p.mu}とする。2物体の加速度と糸の張力を求めよ。`,
+      givens:['m₁','m₂','外力 F','摩擦係数 μ'],
+      target:'共通加速度 a と張力 T',
+      system:'まず2物体全体、その後1物体',
+      axes:'運動方向を正方向',
+      principles:['系全体の運動方程式','1物体の運動方程式']
+    }),
+    verticalCircle: p => ({
+      stem:`長さ${p.r} mの軽い糸に質量${p.m} kgの小球をつけ、鉛直面内で円運動させる。最下点での速さは${p.v0} m/sである。最高点での速さと糸の張力を求めよ。`,
+      givens:['半径 r','質量 m','最下点での速さ v₀'],
+      target:'最高点での速さ v と張力 T',
+      system:'小球1個',
+      axes:'最高点では円の中心向きを正',
+      principles:['最下点→最高点の力学的エネルギー保存','最高点で半径方向の運動方程式']
+    }),
+    collision: p => ({
+      stem:`一直線上を運動する質量${p.m1} kgと${p.m2} kgの2物体が衝突する。衝突直前の速度はそれぞれ${p.u1} m/s、${p.u2} m/s、反発係数は${p.e}である。衝突後の速度を求めよ。`,
+      givens:['m₁,m₂','衝突前速度 u₁,u₂','反発係数 e'],
+      target:'衝突後速度 v₁,v₂',
+      system:'2物体系',
+      axes:'一直線上で正方向を統一',
+      principles:['運動量保存','反発係数']
+    }),
+    impulse: p => ({
+      stem:`質量${p.m} kgの物体が速度${p.u} m/sで運動している。この物体に一定の力${p.F} Nを${p.dt} s間加えた。力積と力を加えた後の速度を求めよ。`,
+      givens:['質量 m','初速度 u','一定力 F','作用時間 Δt'],
+      target:'力積 J と終速度 v',
+      system:'物体1個',
+      axes:'力の向きを正方向',
+      principles:['力積 J=FΔt','力積-運動量定理 J=Δp']
+    }),
+    shmEnergy: p => ({
+      stem:`質量${p.m} kgの物体が、ばね定数${p.k} N/mのばねにつながれて振幅${p.A} mで単振動している。平衡点からの変位が振幅の半分となる位置での速さを求めよ。`,
+      givens:['質量 m','ばね定数 k','振幅 A','位置 x=A/2'],
+      target:'x=A/2での速さ',
+      system:'ばね＋物体',
+      axes:'平衡点を原点',
+      principles:['単振動の力学的エネルギー保存','E=(1/2)kA²','U=(1/2)kx²']
+    })
+  };
+
+  function renderMechanicsReading(){
+    const box=$('psMechanicsReading');
+    if(!box) return;
+    if(!state.active || !mechanicsReadingBank[state.active.type]){
+      box.innerHTML='<div class="physics-note">このシミュレーターは問題文読解モード対象外です。</div>';
+      return;
+    }
+    const d=mechanicsReadingBank[state.active.type](state.active.params);
+    box.innerHTML=
+      '<div style="font-weight:900">問題文</div>'+
+      '<div style="margin-top:6px;line-height:1.65">'+d.stem+'</div>'+
+      '<textarea id="psReadNotes" rows="4" placeholder="与えられた条件・求める量・使えそうな原理を書き出す" style="width:100%;margin-top:8px"></textarea>'+
+      '<div class="physics-inline" style="margin-top:8px">'+
+      '<button class="btn small" id="psReadGivens">条件</button>'+
+      '<button class="btn small" id="psReadTarget">求める量</button>'+
+      '<button class="btn small" id="psReadSystem">対象系</button>'+
+      '<button class="btn small" id="psReadAxes">座標軸</button>'+
+      '<button class="btn small" id="psReadPrinciples">原理</button>'+
+      '</div>'+
+      '<div id="psReadReveal" class="physics-note" style="margin-top:8px">まず問題文だけから整理してください。</div>';
+    $('psReadGivens').onclick=()=>{$('psReadReveal').textContent='条件: '+d.givens.join(' / ');};
+    $('psReadTarget').onclick=()=>{$('psReadReveal').textContent='求める量: '+d.target;};
+    $('psReadSystem').onclick=()=>{$('psReadReveal').textContent='対象系: '+d.system;};
+    $('psReadAxes').onclick=()=>{$('psReadReveal').textContent='座標軸: '+d.axes;};
+    $('psReadPrinciples').onclick=()=>{$('psReadReveal').textContent='使える原理: '+d.principles.join(' → ');};
+  }
 
   function currentMechanicsProblem(){
     if(!state.active) return null;
@@ -1201,6 +1297,10 @@
         <button class="btn small" id="psReset">↺ リセット</button>
       </div>
       <details open style="margin-top:10px">
+        <summary style="font-weight:800;cursor:pointer">📖 Mechanics Reading Mode</summary>
+        <div id="psMechanicsReading" style="margin-top:8px"><div class="physics-note">力学シミュレーターを追加すると入試問題文を表示します。</div></div>
+      </details>
+      <details open style="margin-top:10px">
         <summary style="font-weight:800;cursor:pointer">🧠 Mechanics Problem Generator</summary>
         <div id="psMechanicsProblem" style="margin-top:8px"><div class="physics-note">力学シミュレーターを追加すると問題を生成します。</div></div>
       </details>
@@ -1221,6 +1321,7 @@
     showFields($('psType').value);
     renderExam();
     renderMechanicsProblem();
+    renderMechanicsReading();
   }
 
   function boot(){
