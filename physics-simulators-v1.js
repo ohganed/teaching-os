@@ -110,19 +110,22 @@
   function renderCollision(p,t){
     const m=api().deriveCollision({m1:p.m1,m2:p.m2,u1:p.u1,u2:p.u2,restitution:p.e});
     const q=m.quantities;
-    const hitTime=1.6;
+    const closing=p.u1-p.u2;
+    const hitTime=closing>0?Math.max(0,(430-180-70)/(closing*40)):Infinity;
     const before=t<hitTime;
     const dt=before?t:t-hitTime;
-    const x1=before?180+p.u1*40*t:260+q.v1*40*dt;
-    const x2=before?430+p.u2*40*t:350+q.v2*40*dt;
+    const hitX1=180+p.u1*40*hitTime;
+    const hitX2=430+p.u2*40*hitTime;
+    const x1=before?180+p.u1*40*t:hitX1+q.v1*40*dt;
+    const x2=before?430+p.u2*40*t:hitX2+q.v2*40*dt;
     return makeSvg(`
       <line x1="60" y1="245" x2="590" y2="245" stroke="#334155" stroke-width="4"/>
       <rect x="${clamp(x1,70,540)-35}" y="190" width="70" height="45" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
       <rect x="${clamp(x2,100,570)-35}" y="190" width="70" height="45" rx="8" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
       <text x="40" y="45" font-size="24" font-family="sans-serif">1次元衝突</text>
       <text x="40" y="82" font-size="18" font-family="sans-serif">e = ${p.e.toFixed(2)}</text>
-      <text x="40" y="110" font-size="18" font-family="sans-serif">v₁ = ${q.v1.toFixed(2)} m/s</text>
-      <text x="40" y="138" font-size="18" font-family="sans-serif">v₂ = ${q.v2.toFixed(2)} m/s</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">${before?'u₁':'v₁'} = ${(before?p.u1:q.v1).toFixed(2)} m/s</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">${before?'u₂':'v₂'} = ${(before?p.u2:q.v2).toFixed(2)} m/s</text>
       <text x="40" y="166" font-size="18" font-family="sans-serif">p(before)=${q.pBefore.toFixed(2)}, p(after)=${q.pAfter.toFixed(2)}</text>
     `);
   }
@@ -362,7 +365,7 @@
     const rad=p.angle*Math.PI/180;
     const ox=130, oy=275, len=360;
     const x2=ox+len*Math.cos(rad), y2=oy-len*Math.sin(rad);
-    const s=clamp((q.acceleration*t*t)*10,-80,160);
+    const s=clamp((-.5*q.acceleration*t*t)*20,-160,80);
     const bx=ox+180*Math.cos(rad)+s*Math.cos(rad);
     const by=oy-180*Math.sin(rad)-s*Math.sin(rad);
     return makeSvg(`
@@ -391,8 +394,32 @@
     `);
   }
 
+  function verticalCircleAngle(p,t){
+    // The energy equation supplies speed at each angle; dθ/dt=v/r.
+    let angle=0;
+    const step=0.005;
+    for(let elapsed=0;elapsed<t;elapsed+=step){
+      const dt=Math.min(step,t-elapsed);
+      const height=p.r*(1-Math.cos(angle));
+      const speed=Math.sqrt(Math.max(0,p.v0*p.v0-2*p.g*height));
+      angle+=speed/p.r*dt;
+    }
+    return (angle*180/Math.PI)%360;
+  }
+
   function renderVerticalCircle(p,t){
-    const angle=(p.omegaDeg*t)%360;
+    const minimumBottomSpeed=Math.sqrt(5*p.g*p.r);
+    if(p.v0<minimumBottomSpeed){
+      return makeSvg(`
+        <circle cx="360" cy="190" r="110" fill="none" stroke="#94a3b8" stroke-width="4"/>
+        <circle cx="360" cy="300" r="13" fill="#475569"/>
+        <text x="40" y="45" font-size="24" font-family="sans-serif">鉛直円運動</text>
+        <text x="40" y="82" font-size="18" font-family="sans-serif">糸が張ったまま一周する条件を満たしません</text>
+        <text x="40" y="110" font-size="18" font-family="sans-serif">必要な最下点速度 ≥ ${minimumBottomSpeed.toFixed(2)} m/s</text>
+        <text x="40" y="138" font-size="18" font-family="sans-serif">現在 v₀ = ${p.v0.toFixed(2)} m/s</text>
+      `);
+    }
+    const angle=verticalCircleAngle(p,t);
     const m=api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:angle});
     const q=m.quantities;
     const cx=360,cy=190,R=110;
@@ -413,7 +440,8 @@
     const tt=Math.min(t,p.dt);
     const m=api().deriveImpulse({massKg:p.m,initialVelocity:p.u,forceN:p.F,durationS:tt});
     const q=m.quantities;
-    const px=100+clamp(q.finalVelocity*t*18,-20,430);
+    const travel=p.u*t+(p.F/p.m)*(tt*t-tt*tt/2);
+    const px=100+clamp(travel*18,-20,430);
     return makeSvg(`
       <line x1="60" y1="250" x2="590" y2="250" stroke="#334155" stroke-width="4"/>
       <rect x="${px}" y="195" width="80" height="50" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
@@ -589,9 +617,11 @@
     verticalCircle:{
       name:'鉛直円運動',
       duration:p=>6,
-      defaults:{r:1,v0:6,m:1,g:9.8,omegaDeg:60},
+      defaults:{r:1,v0:8,m:1,g:9.8},
       render:renderVerticalCircle,
-      verify:(p,t)=>api().verificationSummary(api().verifyVerticalCircle(api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:(p.omegaDeg*t)%360})))
+      verify:(p,t)=>p.v0*p.v0<5*p.g*p.r
+        ? {result:'UNVERIFIED',checks:[],reason:'糸が張った円運動の成立条件を満たさない'}
+        : api().verificationSummary(api().verifyVerticalCircle(api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:verticalCircleAngle(p,t)})))
     },
     impulse:{
       name:'力積・運動量',
@@ -672,7 +702,7 @@
       m1:Math.max(.01,+$('psTBM1').value||1),m2:Math.max(.01,+$('psTBM2').value||1),F:+$('psTBF').value||0,mu:Math.max(0,+$('psTBMu').value||0),g:9.8
     };
     if(type==='verticalCircle') return {
-      r:Math.max(.05,+$('psVCR').value||1),v0:Math.max(0,+$('psVCV').value||6),m:Math.max(.01,+$('psVCM').value||1),g:9.8,omegaDeg:Math.max(1,+$('psVCOmega').value||60)
+      r:Math.max(.05,+$('psVCR').value||1),v0:Math.max(0,Number($('psVCV').value)),m:Math.max(.01,+$('psVCM').value||1),g:9.8
     };
     if(type==='impulse') return {
       m:Math.max(.01,+$('psImpM').value||1),u:+$('psImpU').value||0,F:+$('psImpF').value||0,dt:Math.max(0,+$('psImpDt').value||.5)
@@ -913,6 +943,7 @@
       plan:'底→頂点でエネルギー保存、その後頂点で向心方向の式を立てる',
       solve:()=>{
         const m=api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:180});
+        if(p.v0*p.v0<5*p.g*p.r) return '糸が張ったまま最高点に到達する条件 v₀²≥5gr を満たさない';
         return `v(top)=${m.quantities.speed.toFixed(2)} m/s, T(top)=${m.quantities.tensionN.toFixed(2)} N`;
       }
     }),
@@ -970,8 +1001,8 @@
       principles:['水平は等速運動','鉛直は等加速度運動','初速度を成分分解']
     }),
     inclineFriction: p => ({
-      stem:`質量${p.m} kgの物体を傾斜角${p.angle}°の粗い斜面上に静かに置く。静止摩擦係数は${p.muS}、動摩擦係数は${p.muK}である。物体が静止するか判定し、滑る場合は加速度を求めよ。`,
-      givens:['質量 m','傾斜角 θ','静止摩擦係数 μs','動摩擦係数 μk'],
+      stem:`質量${p.m} kgの物体を傾斜角${p.angle}°の粗い斜面上に静かに置く。静止摩擦係数は${p.muS}、動摩擦係数は${p.muK}、斜面下向きの外力は${p.F} Nである。物体が静止するか判定し、滑る場合は加速度を求めよ。`,
+      givens:['質量 m','傾斜角 θ','静止摩擦係数 μs','動摩擦係数 μk','斜面下向きの外力 F'],
       target:'静止/運動の判定、滑るなら加速度',
       system:'斜面上の物体1個',
       axes:'斜面方向・斜面に垂直方向',
@@ -1019,6 +1050,17 @@
     })
   };
 
+  const equationGuides={
+    kinematics:{body:'物体1個',direction:'運動方向',left:'速度の変化・変位',right:'初速度と一定加速度',equation:'v=v₀+at, x=x₀+v₀t+(1/2)at²'},
+    projectile:{body:'小球',direction:'水平と鉛直を別々に',left:'各方向の変位と速度',right:'水平方向 aₓ=0、鉛直方向 aᵧ=−g',equation:'x=(v₀cosθ)t, y=(v₀sinθ)t−(1/2)gt²; vₓ=v₀cosθ, vᵧ=v₀sinθ−gt'},
+    inclineFriction:{body:'斜面上の物体',direction:'斜面下向きを正、垂直方向も確認',left:'ma（静止なら0）',right:'mg sinθ、外力、摩擦（向きに注意）',equation:'N=mg cosθ; 静止判定 |mg sinθ+F|≤μsN; 運動時 ma=mg sinθ+F−sgn(mg sinθ+F)μkN'},
+    twoBlock:{body:'まず2物体全体、次に m₂',direction:'外力の向きを正',left:'(m₁+m₂)a と m₂a',right:'全体では外力と摩擦、m₂では張力と摩擦',equation:'(m₁+m₂)a=F−μ(m₁+m₂)g; m₂a=T−μm₂g（右向きに滑る場合）'},
+    verticalCircle:{body:'小球と地球（エネルギー）、次に小球（力）',direction:'最高点では中心向きを正',left:'エネルギー変化、次に mv²/r',right:'重力による位置エネルギー、次に張力と重力',equation:'(1/2)mv₀²=(1/2)mv²+2mgr; mv²/r=T+mg（糸が張った場合）'},
+    collision:{body:'衝突する2物体全体',direction:'両物体で同じ正方向',left:'衝突前後の全運動量',right:'外力の力積が無視できるため等しい。反発係数も使用',equation:'m₁u₁+m₂u₂=m₁v₁+m₂v₂; v₂−v₁=e(u₁−u₂)（接近する場合）'},
+    impulse:{body:'力を受ける物体',direction:'与えた速度と力の符号を統一',left:'運動量の変化 m(v−u)',right:'力積 FΔt',equation:'m(v−u)=FΔt'},
+    shmEnergy:{body:'ばね＋物体',direction:'平衡点からの変位 x',left:'全エネルギー (1/2)kA²',right:'位置 x での弾性エネルギーと運動エネルギー',equation:'(1/2)kA²=(1/2)kx²+(1/2)mv²'}
+  };
+
   function renderMechanicsReading(){
     const box=$('psMechanicsReading');
     if(!box) return;
@@ -1027,6 +1069,7 @@
       return;
     }
     const d=mechanicsReadingBank[state.active.type](state.active.params);
+    const guide=equationGuides[state.active.type];
     box.innerHTML=
       '<div style="font-weight:900">問題文</div>'+
       '<div style="margin-top:6px;line-height:1.65">'+d.stem+'</div>'+
@@ -1037,6 +1080,9 @@
       '<button class="btn small" id="psReadSystem">対象系</button>'+
       '<button class="btn small" id="psReadAxes">座標軸</button>'+
       '<button class="btn small" id="psReadPrinciples">原理</button>'+
+      '<button class="btn small" id="psReadEquation">式を立てる</button>'+
+      '<button class="btn small" id="psReadCalculate">計算</button>'+
+      '<button class="btn small" id="psReadVerify">Simulatorで検証</button>'+
       '</div>'+
       '<div id="psReadReveal" class="physics-note" style="margin-top:8px">まず問題文だけから整理してください。</div>';
     $('psReadGivens').onclick=()=>{$('psReadReveal').textContent='条件: '+d.givens.join(' / ');};
@@ -1044,6 +1090,35 @@
     $('psReadSystem').onclick=()=>{$('psReadReveal').textContent='対象系: '+d.system;};
     $('psReadAxes').onclick=()=>{$('psReadReveal').textContent='座標軸: '+d.axes;};
     $('psReadPrinciples').onclick=()=>{$('psReadReveal').textContent='使える原理: '+d.principles.join(' → ');};
+    $('psReadEquation').onclick=()=>{
+      const reveal=$('psReadReveal');
+      reveal.replaceChildren();
+      const prompts=[
+        ['どの物体について？',guide.body],
+        ['どの方向について？',guide.direction],
+        ['左辺は何か？',guide.left],
+        ['右辺には何が入るか？',guide.right],
+        ['式を確認',guide.equation]
+      ];
+      const title=document.createElement('div');
+      title.textContent='自分の式をノートに書いてから、一問ずつ開いてください。';
+      reveal.append(title);
+      prompts.forEach(([question,answer])=>{
+        const detail=document.createElement('details');
+        const summary=document.createElement('summary');
+        summary.textContent=question;
+        detail.append(summary,document.createTextNode(answer));
+        reveal.append(detail);
+      });
+    };
+    $('psReadCalculate').onclick=()=>{
+      const problem=currentMechanicsProblem();
+      $('psReadReveal').textContent=problem?'計算結果（現在のパラメータ）: '+problem.solve():'計算対象外です。';
+    };
+    $('psReadVerify').onclick=()=>{
+      const summary=defs[state.active.type].verify(state.active.params,state.elapsed);
+      $('psReadReveal').textContent='Simulator / Physics Model 検証: '+summary.result+'。Student View の図と数値を照合してください。描画自体は法則の証明ではありません。';
+    };
   }
 
   function currentMechanicsProblem(){
@@ -1273,9 +1348,8 @@
 
       <div data-sim-fields="verticalCircle" class="col" hidden>
         <div class="physics-inline"><div class="field"><label>r</label><input id="psVCR" type="number" value="1" step="0.1"></div>
-        <div class="field"><label>底での速さ</label><input id="psVCV" type="number" value="6" step="0.5"></div>
+        <div class="field"><label>底での速さ</label><input id="psVCV" type="number" value="8" step="0.5"></div>
         <div class="field"><label>m</label><input id="psVCM" type="number" value="1" step="0.1"></div>
-        <div class="field"><label>角速度表示</label><input id="psVCOmega" type="number" value="60" step="5"></div></div>
       </div>
 
       <div data-sim-fields="impulse" class="col" hidden>

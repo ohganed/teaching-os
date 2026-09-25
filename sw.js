@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teaching-os-v0.32.7-physics-simulators-v1';
+const CACHE_NAME = 'teaching-os-v0.32.8-mechanics-reading-equations';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icon.svg',
