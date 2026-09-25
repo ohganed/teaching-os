@@ -366,11 +366,14 @@
     const ox=130, oy=275, len=360;
     const x2=ox+len*Math.cos(rad), y2=oy-len*Math.sin(rad);
     const s=clamp((-.5*q.acceleration*t*t)*20,-160,80);
-    const bx=ox+180*Math.cos(rad)+s*Math.cos(rad);
-    const by=oy-180*Math.sin(rad)-s*Math.sin(rad);
+    const contactX=ox+(180+s)*Math.cos(rad);
+    const contactY=oy-(180+s)*Math.sin(rad);
+    const halfHeight=27.5;
+    const bx=contactX-halfHeight*Math.sin(rad);
+    const by=contactY-halfHeight*Math.cos(rad);
     return makeSvg(`
       <line x1="${ox}" y1="${oy}" x2="${x2}" y2="${y2}" stroke="#334155" stroke-width="6"/>
-      <rect x="${bx-35}" y="${by-28}" width="70" height="55" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3" transform="rotate(${-p.angle} ${bx} ${by})"/>
+      <rect x="${bx-35}" y="${by-halfHeight}" width="70" height="55" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3" transform="rotate(${-p.angle} ${bx} ${by})"/>
       <text x="40" y="45" font-size="24" font-family="sans-serif">斜面＋摩擦</text>
       <text x="40" y="82" font-size="18" font-family="sans-serif">mg sinθ = ${q.parallelN.toFixed(2)} N</text>
       <text x="40" y="110" font-size="18" font-family="sans-serif">f = ${q.frictionN.toFixed(2)} N</text>

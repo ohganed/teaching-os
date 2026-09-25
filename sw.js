@@ -1,4 +1,4 @@
-const CACHE_NAME = 'teaching-os-v0.32.8-mechanics-reading-equations';
+const CACHE_NAME = 'teaching-os-v0.32.9-incline-contact-geometry';
 const APP_SHELL = [
   './manifest.webmanifest',
   './icon.svg',
