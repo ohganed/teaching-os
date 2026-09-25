@@ -355,6 +355,93 @@
     `);
   }
 
+
+  function renderInclineFriction(p,t){
+    const m=api().deriveInclineFriction({massKg:p.m,angleDeg:p.angle,muS:p.muS,muK:p.muK,gravity:p.g,appliedAlongSlopeN:p.F});
+    const q=m.quantities;
+    const rad=p.angle*Math.PI/180;
+    const ox=130, oy=275, len=360;
+    const x2=ox+len*Math.cos(rad), y2=oy-len*Math.sin(rad);
+    const s=clamp((q.acceleration*t*t)*10,-80,160);
+    const bx=ox+180*Math.cos(rad)+s*Math.cos(rad);
+    const by=oy-180*Math.sin(rad)-s*Math.sin(rad);
+    return makeSvg(`
+      <line x1="${ox}" y1="${oy}" x2="${x2}" y2="${y2}" stroke="#334155" stroke-width="6"/>
+      <rect x="${bx-35}" y="${by-28}" width="70" height="55" rx="8" fill="#cbd5e1" stroke="#334155" stroke-width="3" transform="rotate(${-p.angle} ${bx} ${by})"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">斜面＋摩擦</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">mg sinθ = ${q.parallelN.toFixed(2)} N</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">f = ${q.frictionN.toFixed(2)} N</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">a = ${q.acceleration.toFixed(2)} m/s²</text>
+      <text x="40" y="166" font-size="18" font-family="sans-serif">${q.moving?'運動':'静止'}</text>
+    `);
+  }
+
+  function renderTwoBlock(p,t){
+    const m=api().deriveTwoBlock({m1:p.m1,m2:p.m2,forceN:p.F,mu:p.mu,gravity:p.g});
+    const q=m.quantities;
+    const shift=clamp(.5*q.acceleration*t*t*28,-100,180);
+    return makeSvg(`
+      <line x1="60" y1="255" x2="590" y2="255" stroke="#334155" stroke-width="4"/>
+      <rect x="${160+shift}" y="195" width="90" height="55" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <rect x="${330+shift}" y="195" width="90" height="55" fill="#e2e8f0" stroke="#334155" stroke-width="3"/>
+      <line x1="${250+shift}" y1="222" x2="${330+shift}" y2="222" stroke="#64748b" stroke-width="4"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">2物体連結系</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">a = ${q.acceleration.toFixed(3)} m/s²</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">T = ${q.tensionN.toFixed(3)} N</text>
+    `);
+  }
+
+  function renderVerticalCircle(p,t){
+    const angle=(p.omegaDeg*t)%360;
+    const m=api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:angle});
+    const q=m.quantities;
+    const cx=360,cy=190,R=110;
+    const th=angle*Math.PI/180;
+    const px=cx+R*Math.sin(th),py=cy+R*Math.cos(th);
+    return makeSvg(`
+      <circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#94a3b8" stroke-width="4"/>
+      <circle cx="${px}" cy="${py}" r="13" fill="#475569"/>
+      <line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="#64748b" stroke-width="3"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">鉛直円運動</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">v = ${q.speed.toFixed(2)} m/s</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">Tension = ${q.tensionN.toFixed(2)} N</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">${q.contactMaintained?'接触維持':'接触条件を満たさない'}</text>
+    `);
+  }
+
+  function renderImpulse(p,t){
+    const tt=Math.min(t,p.dt);
+    const m=api().deriveImpulse({massKg:p.m,initialVelocity:p.u,forceN:p.F,durationS:tt});
+    const q=m.quantities;
+    const px=100+clamp(q.finalVelocity*t*18,-20,430);
+    return makeSvg(`
+      <line x1="60" y1="250" x2="590" y2="250" stroke="#334155" stroke-width="4"/>
+      <rect x="${px}" y="195" width="80" height="50" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">力積・運動量</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">J = ${q.impulseNs.toFixed(2)} N·s</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">Δp = ${q.deltaMomentum.toFixed(2)} kg·m/s</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">v = ${q.finalVelocity.toFixed(2)} m/s</text>
+    `);
+  }
+
+  function renderSHMEnergy(p,t){
+    const x=p.A*Math.cos(t*2);
+    const m=api().deriveSHMEnergy({massKg:p.m,springConstant:p.k,amplitude:p.A,position:x});
+    const q=m.quantities;
+    const bx=330+clamp(x/Math.max(p.A,.001),-1,1)*180;
+    const maxE=Math.max(q.totalEnergy,.0001);
+    return makeSvg(`
+      <line x1="70" y1="180" x2="${bx-40}" y2="180" stroke="#64748b" stroke-width="4"/>
+      <rect x="${bx-40}" y="145" width="80" height="70" fill="#cbd5e1" stroke="#334155" stroke-width="3"/>
+      <rect x="70" y="285" width="${220*q.kineticEnergy/maxE}" height="18" fill="#94a3b8"/>
+      <rect x="320" y="285" width="${220*q.potentialEnergy/maxE}" height="18" fill="#cbd5e1"/>
+      <text x="40" y="45" font-size="24" font-family="sans-serif">単振動：エネルギー</text>
+      <text x="40" y="82" font-size="18" font-family="sans-serif">K = ${q.kineticEnergy.toFixed(3)} J</text>
+      <text x="40" y="110" font-size="18" font-family="sans-serif">U = ${q.potentialEnergy.toFixed(3)} J</text>
+      <text x="40" y="138" font-size="18" font-family="sans-serif">E = ${q.totalEnergy.toFixed(3)} J</text>
+    `);
+  }
+
   const defs={
     kinematics:{
       name:'等加速度運動',
@@ -484,6 +571,41 @@
       defaults:{f:8e14,W:2},
       render:renderPhotoelectric,
       verify:(p,t)=>api().verificationSummary(api().verifyPhotoelectric(api().derivePhotoelectric({frequencyHz:p.f,workFunctionEV:p.W})))
+    },
+    inclineFriction:{
+      name:'斜面＋摩擦',
+      duration:p=>5,
+      defaults:{m:1,angle:30,muS:.4,muK:.3,F:0,g:9.8},
+      render:renderInclineFriction,
+      verify:(p,t)=>api().verificationSummary(api().verifyInclineFriction(api().deriveInclineFriction({massKg:p.m,angleDeg:p.angle,muS:p.muS,muK:p.muK,gravity:p.g,appliedAlongSlopeN:p.F})))
+    },
+    twoBlock:{
+      name:'2物体連結系',
+      duration:p=>5,
+      defaults:{m1:2,m2:1,F:9,mu:0,g:9.8},
+      render:renderTwoBlock,
+      verify:(p,t)=>api().verificationSummary(api().verifyTwoBlock(api().deriveTwoBlock({m1:p.m1,m2:p.m2,forceN:p.F,mu:p.mu,gravity:p.g})))
+    },
+    verticalCircle:{
+      name:'鉛直円運動',
+      duration:p=>6,
+      defaults:{r:1,v0:6,m:1,g:9.8,omegaDeg:60},
+      render:renderVerticalCircle,
+      verify:(p,t)=>api().verificationSummary(api().verifyVerticalCircle(api().deriveVerticalCircle({radius:p.r,speedBottom:p.v0,massKg:p.m,gravity:p.g,angleDeg:(p.omegaDeg*t)%360})))
+    },
+    impulse:{
+      name:'力積・運動量',
+      duration:p=>Math.max(2,p.dt+1),
+      defaults:{m:1,u:0,F:10,dt:.5},
+      render:renderImpulse,
+      verify:(p,t)=>api().verificationSummary(api().verifyImpulse(api().deriveImpulse({massKg:p.m,initialVelocity:p.u,forceN:p.F,durationS:Math.min(t,p.dt)})))
+    },
+    shmEnergy:{
+      name:'単振動エネルギー',
+      duration:p=>6,
+      defaults:{m:1,k:10,A:.2},
+      render:renderSHMEnergy,
+      verify:(p,t)=>api().verificationSummary(api().verifySHMEnergy(api().deriveSHMEnergy({massKg:p.m,springConstant:p.k,amplitude:p.A,position:p.A*Math.cos(t*2)})))
     }
   };
 
@@ -540,8 +662,23 @@
     if(type==='lens') return {
       f:+$('psLensF').value||20,u:+$('psLensU').value||60
     };
-    return {
+    if(type==='photoelectric') return {
       f:Math.max(0,+$('psPhotoF').value||8e14),W:Math.max(0,+$('psPhotoW').value||2)
+    };
+    if(type==='inclineFriction') return {
+      m:Math.max(.01,+$('psIFM').value||1),angle:clamp(+$('psIFAngle').value||30,0,80),muS:Math.max(0,+$('psIFMuS').value||0),muK:Math.max(0,+$('psIFMuK').value||0),F:+$('psIFF').value||0,g:9.8
+    };
+    if(type==='twoBlock') return {
+      m1:Math.max(.01,+$('psTBM1').value||1),m2:Math.max(.01,+$('psTBM2').value||1),F:+$('psTBF').value||0,mu:Math.max(0,+$('psTBMu').value||0),g:9.8
+    };
+    if(type==='verticalCircle') return {
+      r:Math.max(.05,+$('psVCR').value||1),v0:Math.max(0,+$('psVCV').value||6),m:Math.max(.01,+$('psVCM').value||1),g:9.8,omegaDeg:Math.max(1,+$('psVCOmega').value||60)
+    };
+    if(type==='impulse') return {
+      m:Math.max(.01,+$('psImpM').value||1),u:+$('psImpU').value||0,F:+$('psImpF').value||0,dt:Math.max(0,+$('psImpDt').value||.5)
+    };
+    return {
+      m:Math.max(.01,+$('psSHMM').value||1),k:Math.max(.01,+$('psSHMK').value||10),A:Math.max(0,+$('psSHMA').value||.2)
     };
   }
 
@@ -686,6 +823,31 @@
       prompt:p=>`しきい周波数未満の光を強くすると電子は出る？ 周波数を上げるとKmaxは？`,
       reveal:p=>'しきい周波数未満では強くしても放出されない。放出域では Kmax=hf-W なので周波数とともに増える。'
     },
+    inclineFriction: {
+      title:'斜面＋摩擦：動き出す条件',
+      prompt:p=>`角度θを増やすと、どの条件で物体は斜面を滑り始める？ μs=${p.muS}。`,
+      reveal:p=>'mg sinθ が最大静止摩擦 μs mg cosθ を超えると滑り始める。境界は tanθ=μs。'
+    },
+    twoBlock: {
+      title:'連結体：張力をどこで求める？',
+      prompt:p=>'2物体全体で加速度を求めた後、張力Tはどの物体に運動方程式を立てると求めやすい？',
+      reveal:p=>'通常は張力以外の未知力が少ない側の1物体に運動方程式を立てる。'
+    },
+    verticalCircle: {
+      title:'鉛直円運動：頂点で糸がたるまない条件',
+      prompt:p=>'頂点で張力が0になる限界では、速さは半径とgを使ってどう表せる？',
+      reveal:p=>'頂点では mg=mv²/r が限界なので v²=gr。'
+    },
+    impulse: {
+      title:'力積：同じΔpを作る',
+      prompt:p=>'同じ運動量変化を作るには、力を半分にしたとき作用時間はどうすればよい？',
+      reveal:p=>'J=FΔt=Δp なので、力を半分にすれば作用時間を2倍にする。'
+    },
+    shmEnergy: {
+      title:'単振動：どこで速さ最大？',
+      prompt:p=>'ばね単振動で速さが最大になる位置、運動エネルギー最大になる位置はどこ？',
+      reveal:p=>'平衡点 x=0。U=(1/2)kx² が最小なので K が最大。'
+    },
     gas: {
       title:'気体：温度変化',
       prompt:p=>`物質量と体積一定で温度を上げると圧力はどうなる？`,
@@ -753,6 +915,11 @@
           <option value="faraday">電磁誘導</option>
           <option value="lens">薄レンズ</option>
           <option value="photoelectric">光電効果</option>
+          <option value="inclineFriction">斜面＋摩擦</option>
+          <option value="twoBlock">2物体連結系</option>
+          <option value="verticalCircle">鉛直円運動</option>
+          <option value="impulse">力積・運動量</option>
+          <option value="shmEnergy">単振動エネルギー</option>
         </select>
       </div>
 
@@ -867,6 +1034,41 @@
       <div data-sim-fields="photoelectric" class="col" hidden>
         <div class="physics-inline"><div class="field"><label>f (Hz)</label><input id="psPhotoF" type="number" value="800000000000000" step="10000000000000"></div>
         <div class="field"><label>仕事関数 W (eV)</label><input id="psPhotoW" type="number" value="2" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="inclineFriction" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m</label><input id="psIFM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>角度</label><input id="psIFAngle" type="number" value="30" step="1"></div></div>
+        <div class="physics-inline"><div class="field"><label>μs</label><input id="psIFMuS" type="number" value="0.4" step="0.05"></div>
+        <div class="field"><label>μk</label><input id="psIFMuK" type="number" value="0.3" step="0.05"></div>
+        <div class="field"><label>斜面方向外力</label><input id="psIFF" type="number" value="0" step="0.5"></div></div>
+      </div>
+
+      <div data-sim-fields="twoBlock" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m₁</label><input id="psTBM1" type="number" value="2" step="0.1"></div>
+        <div class="field"><label>m₂</label><input id="psTBM2" type="number" value="1" step="0.1"></div></div>
+        <div class="physics-inline"><div class="field"><label>外力 F</label><input id="psTBF" type="number" value="9" step="0.5"></div>
+        <div class="field"><label>μ</label><input id="psTBMu" type="number" value="0" step="0.05"></div></div>
+      </div>
+
+      <div data-sim-fields="verticalCircle" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>r</label><input id="psVCR" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>底での速さ</label><input id="psVCV" type="number" value="6" step="0.5"></div>
+        <div class="field"><label>m</label><input id="psVCM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>角速度表示</label><input id="psVCOmega" type="number" value="60" step="5"></div></div>
+      </div>
+
+      <div data-sim-fields="impulse" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m</label><input id="psImpM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>初速度</label><input id="psImpU" type="number" value="0" step="0.5"></div></div>
+        <div class="physics-inline"><div class="field"><label>F</label><input id="psImpF" type="number" value="10" step="1"></div>
+        <div class="field"><label>作用時間</label><input id="psImpDt" type="number" value="0.5" step="0.1"></div></div>
+      </div>
+
+      <div data-sim-fields="shmEnergy" class="col" hidden>
+        <div class="physics-inline"><div class="field"><label>m</label><input id="psSHMM" type="number" value="1" step="0.1"></div>
+        <div class="field"><label>k</label><input id="psSHMK" type="number" value="10" step="1"></div>
+        <div class="field"><label>A</label><input id="psSHMA" type="number" value="0.2" step="0.05"></div></div>
       </div>
 
       <div class="physics-inline" style="margin-top:8px">
