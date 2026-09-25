@@ -581,6 +581,153 @@
     ];
   }
 
+
+  function deriveInclineFriction({massKg=1,angleDeg=30,muS=0.4,muK=0.3,gravity=9.8,appliedAlongSlopeN=0}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const theta=degToRad(clamp(Number(angleDeg)||0,0,89.9));
+    const mus=Math.max(0,Number(muS)||0);
+    const muk=Math.max(0,Number(muK)||0);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const applied=Number(appliedAlongSlopeN)||0;
+    const parallel=m*g*Math.sin(theta);
+    const normal=m*g*Math.cos(theta);
+    const drive=parallel+applied;
+    const fsMax=mus*normal;
+    const moving=Math.abs(drive)>fsMax;
+    const friction=moving?muk*normal:Math.abs(drive);
+    const frictionSign=drive===0?0:-Math.sign(drive);
+    const net=moving?drive+frictionSign*friction:0;
+    const acceleration=net/m;
+    return {
+      phenomenon:'斜面上の摩擦を受ける物体',
+      givens:{massKg:m,angleDeg:Number(angleDeg)||0,muS:mus,muK:muk,gravity:g,appliedAlongSlopeN:applied},
+      principle:'斜面方向の重力成分と摩擦のつり合い・運動方程式',
+      quantities:{parallelN:parallel,normalN:normal,staticMaxN:fsMax,frictionN:friction,netForceN:net,acceleration,moving}
+    };
+  }
+
+  function verifyInclineFriction(model){
+    const g=model.givens,q=model.quantities;
+    const th=degToRad(g.angleDeg);
+    return [
+      makeCheck('if-parallel','斜面方向重力=mg sinθ','vector decomposition','numeric equality',
+        nearlyEqual(q.parallelN,g.massKg*g.gravity*Math.sin(th))),
+      makeCheck('if-normal','法線方向成分=mg cosθ','vector decomposition','numeric equality',
+        nearlyEqual(q.normalN,g.massKg*g.gravity*Math.cos(th))),
+      makeCheck('if-static','静止中は斜面方向合力0','static equilibrium','state check',
+        q.moving || nearlyEqual(q.netForceN,0))
+    ];
+  }
+
+  function deriveTwoBlock({m1=2,m2=1,forceN=9,mu=0,gravity=9.8}={}){
+    const a=Math.max(0.0001,Number(m1)||1);
+    const b=Math.max(0.0001,Number(m2)||1);
+    const F=Number(forceN)||0;
+    const muk=Math.max(0,Number(mu)||0);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const frictionTotal=muk*(a+b)*g*Math.sign(F||1);
+    const net=F-frictionTotal;
+    const acceleration=net/(a+b);
+    const tension=b*acceleration+muk*b*g*Math.sign(F||1);
+    return {
+      phenomenon:'水平面上の2物体連結系',
+      givens:{m1:a,m2:b,forceN:F,mu:muk,gravity:g},
+      principle:'系全体で加速度を求め、各物体で張力を求める',
+      quantities:{acceleration,tensionN:tension,netForceN:net}
+    };
+  }
+
+  function verifyTwoBlock(model){
+    const g=model.givens,q=model.quantities;
+    const total=g.m1+g.m2;
+    return [
+      makeCheck('tb-system','a=Fnet/(m1+m2)','system Newton equation','numeric equality',
+        nearlyEqual(q.acceleration,q.netForceN/total)),
+      makeCheck('tb-tension','m2側の運動方程式で張力が整合','single-body Newton equation','numeric equality',
+        nearlyEqual(q.tensionN-g.mu*g.m2*g.gravity*Math.sign(g.forceN||1),g.m2*q.acceleration))
+    ];
+  }
+
+  function deriveVerticalCircle({radius=1,speedBottom=6,massKg=1,gravity=9.8,angleDeg=0}={}){
+    const r=Math.max(0.0001,Number(radius)||1);
+    const v0=Math.max(0,Number(speedBottom)||0);
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const g=Math.max(0.0001,Number(gravity)||9.8);
+    const theta=degToRad(clamp(Number(angleDeg)||0,0,360));
+    const height=r*(1-Math.cos(theta));
+    const v2=Math.max(0,v0*v0-2*g*height);
+    const v=Math.sqrt(v2);
+    const radialInwardGravity=m*g*Math.cos(theta);
+    const required=m*v2/r;
+    const tension=required+radialInwardGravity;
+    return {
+      phenomenon:'鉛直面内の円運動',
+      givens:{radius:r,speedBottom:v0,massKg:m,gravity:g,angleDeg:Number(angleDeg)||0},
+      principle:'力学的エネルギー保存 + 半径方向の運動方程式',
+      quantities:{height,speed:v,centripetalRequiredN:required,tensionN:tension,contactMaintained:tension>=0}
+    };
+  }
+
+  function verifyVerticalCircle(model){
+    const g=model.givens,q=model.quantities;
+    const th=degToRad(g.angleDeg);
+    return [
+      makeCheck('vc-energy','v²=v0²-2gh','mechanical energy conservation','numeric equality',
+        nearlyEqual(q.speed*q.speed,Math.max(0,g.speedBottom*g.speedBottom-2*g.gravity*q.height))),
+      makeCheck('vc-radial','半径方向合力=mv²/r','radial Newton equation','numeric equality',
+        nearlyEqual(q.tensionN-g.massKg*g.gravity*Math.cos(th),q.centripetalRequiredN))
+    ];
+  }
+
+  function deriveImpulse({massKg=1,initialVelocity=0,forceN=10,durationS=0.5}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const u=Number(initialVelocity)||0;
+    const F=Number(forceN)||0;
+    const dt=Math.max(0,Number(durationS)||0);
+    const impulse=F*dt;
+    const finalVelocity=u+impulse/m;
+    const deltaP=m*(finalVelocity-u);
+    return {
+      phenomenon:'一定力による力積',
+      givens:{massKg:m,initialVelocity:u,forceN:F,durationS:dt},
+      principle:'J=FΔt=Δp',
+      quantities:{impulseNs:impulse,deltaMomentum:deltaP,finalVelocity}
+    };
+  }
+
+  function verifyImpulse(model){
+    const g=model.givens,q=model.quantities;
+    return [
+      makeCheck('impulse','FΔt=Δp','impulse-momentum theorem','numeric equality',
+        nearlyEqual(q.impulseNs,q.deltaMomentum))
+    ];
+  }
+
+  function deriveSHMEnergy({massKg=1,springConstant=10,amplitude=0.2,position=0}={}){
+    const m=Math.max(0.0001,Number(massKg)||1);
+    const k=Math.max(0.0001,Number(springConstant)||10);
+    const A=Math.max(0,Number(amplitude)||0);
+    const x=clamp(Number(position)||0,-A,A);
+    const total=0.5*k*A*A;
+    const potential=0.5*k*x*x;
+    const kinetic=Math.max(0,total-potential);
+    const speed=Math.sqrt(2*kinetic/m);
+    return {
+      phenomenon:'ばね単振動のエネルギー',
+      givens:{massKg:m,springConstant:k,amplitude:A,position:x},
+      principle:'E=(1/2)kA², U=(1/2)kx², K=E-U',
+      quantities:{totalEnergy:total,potentialEnergy:potential,kineticEnergy:kinetic,speed}
+    };
+  }
+
+  function verifySHMEnergy(model){
+    const q=model.quantities;
+    return [
+      makeCheck('shm-energy','K+U=E','SHM energy conservation','numeric equality',
+        nearlyEqual(q.kineticEnergy+q.potentialEnergy,q.totalEnergy))
+    ];
+  }
+
   // -----------------------------
   // 2. Verification Layer
   // -----------------------------
@@ -782,7 +929,12 @@
       deriveIdealGas,
       deriveFaraday,
       deriveThinLens,
-      derivePhotoelectric
+      derivePhotoelectric,
+      deriveInclineFriction,
+      deriveTwoBlock,
+      deriveVerticalCircle,
+      deriveImpulse,
+      deriveSHMEnergy
     },
     'physics-verification': {
       verifyInclineModel,
@@ -804,6 +956,11 @@
       verifyFaraday,
       verifyThinLens,
       verifyPhotoelectric,
+      verifyInclineFriction,
+      verifyTwoBlock,
+      verifyVerticalCircle,
+      verifyImpulse,
+      verifySHMEnergy,
       verificationSummary,
       registerVerificationAdapter,
       verifyWithAdapter
@@ -846,6 +1003,11 @@
     deriveFaraday,
     deriveThinLens,
     derivePhotoelectric,
+    deriveInclineFriction,
+    deriveTwoBlock,
+    deriveVerticalCircle,
+    deriveImpulse,
+    deriveSHMEnergy,
     verifyInclineModel,
     verifyKinematics,
     verifyProjectile,
@@ -865,6 +1027,11 @@
     verifyFaraday,
     verifyThinLens,
     verifyPhotoelectric,
+    verifyInclineFriction,
+    verifyTwoBlock,
+    verifyVerticalCircle,
+    verifyImpulse,
+    verifySHMEnergy,
     verificationSummary,
     inclineVisualizationSpec,
     buildInclineLessonDesign,
