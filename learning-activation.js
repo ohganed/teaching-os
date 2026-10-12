@@ -9,7 +9,7 @@
     {kind:"transfer", heading:"別の場面でも使える？", prompt:"同じ考え方を、別の食品・広告・実験・日常の判断に使えるだろうか？", reveal:["新しい条件を提示","判断と理由を短く記録"], note:"自動的な転移を仮定しない。別場面で練習させる。"}
   ];
   function buildLessonPlan(topic) {
-    const clean = String(topic || "").trim().replace(/\\s+/g, " ");
+    const clean = String(topic || "").trim().replace(/\s+/g, " ");
     if (!clean) throw new Error("授業テーマを入力してください");
     return {
       schema:"learning-activation-plan-v1", learningActivationPolicyVersion:POLICY_VERSION,
@@ -32,15 +32,15 @@
     };
   }
   function formatForNotes(plan) {
-    return "【Keynote授業構成｜Learning Activation v" + POLICY_VERSION + "】\\n" +
-      "単元：" + plan.topic + "\\n" +
-      "※この構成は授業の骨格です。科学的解説・図・実験条件は別途検証して仕上げます。\\n\\n" +
-      plan.slides.map((s,i) => "[" + (i+1) + "] " + s.title + "（" + s.topic + "）\\n" +
-        "生徒への問い：" + s.studentPrompt + "\\n" +
-        "段階表示：" + s.revealSteps.join(" → ") + "\\n" +
-        "参加方法：" + s.participation + "\\n" +
-        "図：" + s.visual + "\\n" +
-        "教師用：" + s.teacherNotes).join("\\n\\n");
+    return "【Keynote授業構成｜Learning Activation v" + POLICY_VERSION + "】\n" +
+      "単元：" + plan.topic + "\n" +
+      "※この構成は授業の骨格です。科学的解説・図・実験条件は別途検証して仕上げます。\n\n" +
+      plan.slides.map((s,i) => "[" + (i+1) + "] " + s.title + "（" + s.topic + "）\n" +
+        "生徒への問い：" + s.studentPrompt + "\n" +
+        "段階表示：" + s.revealSteps.join(" → ") + "\n" +
+        "参加方法：" + s.participation + "\n" +
+        "図：" + s.visual + "\n" +
+        "教師用：" + s.teacherNotes).join("\n\n");
   }
   function mount() {
     const panel = document.getElementById("knowledgePresenterPanel");
@@ -55,7 +55,7 @@
     const status=document.createElement("div");status.className="help";status.setAttribute("role","status");
     status.textContent="授業テーマをノート欄に入力して実行。科学的内容とKeynote編集の最終確認は必要です。";
     button.addEventListener("click", () => {
-      const topic=notes.value.trim().split(/\\n/)[0];
+      const topic=notes.value.trim().split(/\n/)[0];
       if (!topic){status.textContent="先に授業テーマを入力してください。";return;}
       try {
         const plan=buildLessonPlan(topic),audit=auditLessonPlan(plan);
